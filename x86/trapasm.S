@@ -63,7 +63,7 @@ alltraps:
   #push %esp的原因是将当前esp指向的tf结构基地址作为传递的参数
   pushl %esp
   call trap # trap.c call指令将IP或者CS和IP压入栈中，实现转移
-  addl $4, %esp # 干掉之前压栈的esp, 完成之后%esp又指向trapframe结构
+  addl $4, %esp # 干掉之前压栈的esp, 完成之后%esp又指向trapframe结构=出栈
 
 # 当中断函数处理完后，调用trapret
 # trapret首先弹出一些寄存器，然后调整栈指针到保存eip值的地方，这样执行iret指令后，处理器就回返回到原来被打断的代码处继续执行
