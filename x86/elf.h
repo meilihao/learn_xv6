@@ -2,7 +2,7 @@
 
 #define ELF_MAGIC 0x464C457FU  // "\x7FELF" in little endian
 
-// File header
+// File header: readelf -h xxx
 struct elfhdr {
   uint magic;  // must equal ELF_MAGIC
   uchar elf[12];
@@ -21,7 +21,8 @@ struct elfhdr {
   ushort shstrndx;
 };
 
-// Program section header
+// Program section header: readelf -l xxx
+// p_type: segment的类型
 // p_offset: 该segment的数据在文件中的偏移地址(相对文件头)
 // p_vaddr: segment数据应该加载到进程的虚拟地址
 // p_paddr: segment数据应该加载到进程的物理地址(如果对应系统使用的是物理地址)
