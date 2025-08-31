@@ -19,8 +19,8 @@ swtch: # 调用传参压栈是从左往右
   pushl %edi
 
   # Switch stacks
-  movl %esp, (%eax) ;&cpu->scheduler=esp 即现在指向了当前cpu栈顶，保存了相关context寄存器
-  movl %edx, %esp  ;esp=p->context
+  movl %esp, (%eax)  # &cpu->scheduler=esp 即现在指向了当前cpu栈顶，保存了相关context寄存器
+  movl %edx, %esp  # esp=p->context
 
   # Load new callee-saved registers
   popl %edi
