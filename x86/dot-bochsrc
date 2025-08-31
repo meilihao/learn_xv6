@@ -17,7 +17,7 @@
 # the "wx" display library.
 #=======================================================================
 #config_interface: textconfig
-#config_interface: wx
+#config_interface: sdl
 
 #=======================================================================
 # DISPLAY_LIBRARY
@@ -61,6 +61,7 @@
 #display_library: win32, options="legacyF12" # use F12 to toggle mouse
 #display_library: wx
 #display_library: x
+display_library: sdl2
 
 #=======================================================================
 # ROMIMAGE:
@@ -118,7 +119,7 @@ cpu: count=2, ips=10000000
 #megs: 256
 #megs: 128
 #megs: 64
-megs: 32
+megs: 256
 #megs: 16
 #megs: 8
 
@@ -270,7 +271,7 @@ ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x360, irq=9
 #   ata3-slave:  type=cdrom, path=iso.sample, status=inserted
 #=======================================================================
 ata0-master: type=disk, mode=flat, path="xv6.img", cylinders=100, heads=10, spt=10
-ata0-slave: type=disk, mode=flat, path="fs.img", cylinders=1024, heads=1, spt=1
+#ata0-slave: type=disk, mode=flat, path="fs.img", cylinders=1024, heads=1, spt=1
 #ata0-slave: type=cdrom, path=D:, status=inserted
 #ata0-slave: type=cdrom, path=/dev/cdrom, status=inserted
 #ata0-slave: type=cdrom, path="drive", status=inserted
@@ -494,7 +495,7 @@ parport1: enabled=1, file="/dev/stdout"
 # Examples:
 #   vga_update_interval: 250000
 #=======================================================================
-vga_update_interval: 300000
+#vga_update_interval: 300000
 
 # using for Winstone '98 tests
 #vga_update_interval:  100000
@@ -506,7 +507,7 @@ vga_update_interval: 300000
 # Examples:
 #   keyboard_serial_delay: 200
 #=======================================================================
-keyboard_serial_delay: 250
+#keyboard_serial_delay: 250
 
 #=======================================================================
 # KEYBOARD_PASTE_DELAY:
@@ -523,7 +524,7 @@ keyboard_serial_delay: 250
 # Examples:
 #   keyboard_paste_delay: 100000
 #=======================================================================
-keyboard_paste_delay: 100000
+#keyboard_paste_delay: 100000
 
 #=======================================================================
 # MOUSE: 
@@ -632,7 +633,7 @@ private_colormap: enabled=0
 # Examples:
 #   keyboard_mapping: enabled=1, map=gui/keymaps/x11-pc-de.map
 #=======================================================================
-keyboard_mapping: enabled=0, map=
+#keyboard_mapping: enabled=0, map=
 
 #=======================================================================
 # KEYBOARD_TYPE:
