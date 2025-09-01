@@ -25,3 +25,11 @@ ref:
 ```
 
 调试: 执行make qemu-gdb, 再在同一文件夹下另开一个窗口输入 gdb-multiarch -q kernel/kernel
+
+## 启动过程
+ref:
+- [Virtual Memory Layout on RISC-V Linux](https://www.kernel.org/doc/html/v6.6/riscv/vm-layout.html)
+
+	2G以上空间
+
+1. 在RISC-V机器上电之后，它会初始化自己并运行一个在只读内存中的bootloader. 该bootloader将xv6的内核加载到虚拟地址为0x80000000(2G)內存中，至于为什么不从0x0开始，那是因为在0x0~0x80000000的地址范围里包含了I/O设备
