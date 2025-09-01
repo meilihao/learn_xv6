@@ -11,3 +11,17 @@ ref:
 - [XV6 启动过程](https://mit-public-courses-cn-translatio.gitbook.io/mit6-s081/lec03-os-organization-and-system-calls/3.9-xv6-qi-dong-guo-cheng)
 - [XV6：操作系统组成](https://zhuanlan.zhihu.com/p/624607389)
 - [**MIT 6.S081**](https://blog.csdn.net/zzy980511/category_11740137.html)
+- [XV6实验(2020)](https://blog.csdn.net/weixin_47037146/article/details/128859088)
+
+## 环境
+ref:
+- [xv6-riscv环境搭建](https://groverzhu.github.io/2021/08/17/xv6-riscv%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/)
+
+```
+# apt install gcc-riscv64-unknown-elf gdb-multiarch qemu-system-misc
+# riscv64-unknown-elf-gcc --version
+# qemu-system-riscv64 --version
+# cd xv6-riscv && make qemu
+```
+
+调试: 执行make qemu-gdb, 再在同一文件夹下另开一个窗口输入 gdb-multiarch -q kernel/kernel
