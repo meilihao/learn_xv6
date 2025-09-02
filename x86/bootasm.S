@@ -22,20 +22,26 @@ start:
   # with 2 MB would run software that assumed 1 MB.  Undo that.
   # 为了访问1MB以上的内存空间，需要使能A20地址线. 不过某些BIOS, 包括模拟器（qemu, Bochs等）会默认打开A20地址线, 不需要手动开启
   # 这里是通过键盘控制器的8042芯片开启A20
-  # 0x64(read=Status Register; write=Command Register)
+  # 0x64(read=Status Register, write=Command Register, 两者共用一个端口)
+  # 0x60(read=Output Buffer，write=Input Buffer, 两者共用一个端口 0x60)
 seta20.1:
+  # 开启A20流程
+  # 1. 等待, 直到8042输入缓冲为空为止
   inb     $0x64,%al               # Wait for not busy # 等待直到键盘不忙, 取0x64端口状态值
-  testb   $0x2,%al                # test 是测试寄存器第二个bit(2 = 10)是否是empty的
-  jnz     seta20.1                # 如果是full,也就是第二个bit为1,重复循环
+  testb   $0x2,%al                # 测试寄存器第二个bit(2 = 10)是否为0. 0=输入缓冲为空, 1=输入缓冲不为空
+  jnz     seta20.1                # 如果是1,重复循环
 
+  # 2. 发送写8042输出端口命令0xd1到8042的port 0x64
   movb    $0xd1,%al               # 0xd1 -> port 0x64 # d1=write next byte to controller output port
   outb    %al,$0x64
 
 seta20.2:
+  # 3. 等待, 直到8042输入缓冲为空为止, 即是否完成处理
   inb     $0x64,%al               # Wait for not busy
   testb   $0x2,%al
   jnz     seta20.2
 
+  # 4. 向port 0x60写入0xdf, 表示将A20设置为1, 即开启A20
   movb    $0xdf,%al               # 0xdf -> port 0x60 # DF为11011111, A20位置1, 开启A20线; 0x60=Data Port
   outb    %al,$0x60
 

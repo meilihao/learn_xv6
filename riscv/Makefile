@@ -84,9 +84,9 @@ endif
 LDFLAGS = -z max-page-size=4096
 
 $K/kernel: $(OBJS) $K/kernel.ld
-	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) 
-	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
-	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
+	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) # 指定kernel/kernel.ld为链接脚本，将目标文件进行链接，输出可执行文件kernel/kernel
+	$(OBJDUMP) -S $K/kernel > $K/kernel.asm # 将 kernel 可执行文件反汇编出来，并将其保存在kernel/kernel.asm中
+	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym # 将kernel 符号表入口地址打印到 kernel/kernel.sym 中
 
 $K/%.o: $K/%.S
 	$(CC) -g -c -o $@ $<

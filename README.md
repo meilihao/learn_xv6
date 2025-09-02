@@ -7,5 +7,10 @@ xv6 version:
 
 2020 年发布的 MIT 操作系统课程（6.S081）正式将 RISC-V 版本的 xv6 作为其主要教学材料
 
+## 其他os
+- riscv
+
+    - [mini-riscv-os](https://github.com/cccriscv/mini-riscv-os)
+
 ## license
-[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)

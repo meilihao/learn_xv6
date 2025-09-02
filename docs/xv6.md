@@ -2,8 +2,12 @@
 ref:
 - [asnr/ostep](https://github.com/asnr/ostep)
 - [xv6中文文档](http://staff.ustc.edu.cn/~chizhang/OS/Labs/MIT-XV6-%D6%D0%CE%C4%B7%AD%D2%EB%B0%E6.pdf)
+- [xv6 中文文档](https://th0ar.gitbooks.io/xv6-chinese/content/)
 - [jserv/xv6-x86_64](https://github.com/jserv/xv6-x86_64)
 - [MIT 6.828 学习笔记](https://github.com/GreyZhang/g_unix)
+- [xv6-rust](https://github.com/LENSHOOD/xv6-rust)
+
+    相关文章: [Xv6 Rust](https://www.lenshood.dev/categories/Rust/)
 
 2020 8.11开始不再维护x86, 而是转向riscv
 
