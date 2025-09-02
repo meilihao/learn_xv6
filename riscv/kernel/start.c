@@ -14,11 +14,12 @@ __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
 void
 start()
 {
+  // 当前cpu处于M-Mode
   // set M Previous Privilege mode to Supervisor, for mret.
   unsigned long x = r_mstatus();
   x &= ~MSTATUS_MPP_MASK; // 清除MPP的状态
   x |= MSTATUS_MPP_S; // 设置MPP为监督者模式
-  w_mstatus(x);
+  w_mstatus(x); // 当下面的 mret 指令执行时，处理器会从机器模式切换到监管者模式
 
   // set M Exception Program Counter to main, for mret.
   // requires gcc -mcmodel=medany
@@ -62,5 +63,5 @@ timerinit()
   w_mcounteren(r_mcounteren() | 2);
   
   // ask for the very first timer interrupt.
-  w_stimecmp(r_time() + 1000000); // 在当前时间的基础上增加一个固定的值，作为下一次中断发生的时间点. 1000000代表了两次中断之间的时间间隔，通常是根据系统时钟频率来设定的
+  w_stimecmp(r_time() + 1000000); // 设置首次中断的触发时间. 在当前时间的基础上增加一个固定的值，作为下一次中断发生的时间点. 1000000代表了两次中断之间的时间间隔，通常是根据系统时钟频率来设定的
 }

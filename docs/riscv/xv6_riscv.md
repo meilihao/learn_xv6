@@ -31,6 +31,7 @@ ref:
 ## 环境
 ref:
 - [xv6-riscv环境搭建](https://groverzhu.github.io/2021/08/17/xv6-riscv%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/)
+- [Tools Used in 6.1810](https://pdos.csail.mit.edu/6.S081/2025/tools.html)
 
 ```
 # apt install gcc-riscv64-unknown-elf gdb-multiarch qemu-system-misc
@@ -38,6 +39,10 @@ ref:
 # qemu-system-riscv64 --version
 # cd xv6-riscv && make qemu
 ```
+
+gcc-riscv64-unknown-elf: riscv跨平台编译工具链
+qemu-system-misc: 按照riscv模拟器
+gdb-multiarch: gdb调试器, 支持调试其他arch
 
 调试: 执行make qemu-gdb(退出:按下 Ctrl+a，然后按下 x), 再在同一文件夹下另开一个窗口输入:
 ```bash
@@ -81,7 +86,7 @@ t6             0x0      0
 pc             0x1000   0x1000 # riscv在启动时，pc被默认设置为0x1000，而OpenSBI 的入口点通常就是 0x1000，OpenSBI完成后跳转到0x80000000
 (gdb) break *0x80000000
 (gdb) c # 跳转到_entry
-(gdb) layout asm # 查看汇编源码
+(gdb) layout split # 同时查看汇编和源码
 ```
 
 ## 启动过程

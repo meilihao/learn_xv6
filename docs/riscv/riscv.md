@@ -10,20 +10,29 @@ RISC-V总共有三种模式：
     通常由操作系统内核（如 xv6-riscv）运行，处理操作系统级别的异常
 - U-mode （User mode）
 
-在系统加电之后，会处于M-mode
+在系统加电之后，会处于M-mode.
+
+RV32 和RV64 的区别在于指令集所支持的位数不同，RV32 是32 位指令集，而RV64 是64 位指令集。它们都属于 RISC-V 指令集架构，基础指令集分别为 RV32I 和 RV64I. xv6属于RV64.
 
 ## 寄存器
+每个寄存器也由一个16进制的别名, 比如`0x30a=menvcfg`
+
 - mcounteren: 用于控制在 M-mode 下，哪些计数器可以被 S-mode 访问
 
-    - 2：代表 mtime（机器模式时间）计数器
+    - 2：代表 time（机器模式时间）计数器
 
 - medeleg：Machine Exception Delegation Register
 
     用于指定被委托给更低特权级别的异常，当异常发生时，如果该异常被委托，处理器会将该异常转交给更低特权级别的异常处理程序进行处理。 如果某个位被设置为 1，表示被委托
 
     RISC-V 架构允许将中断和异常处理从 M-mode 委托（delegate） 给 S-mode. xv6运行在 S-mode，因此需要通过配置 w_medeleg 将相应异常委托给 S-mode 处理，以便内核能够响应和处理这些异常（如系统调用、页故障等）.
+
+    RISC-V 设计了灵活的权限委托机制, 这种机制的目的是简化操作系统（运行在 S 模式）的实现，让其能更自主地管理中断和定时器，而无需频繁陷入 M 模式.
     
     xv6 将中断和异常处理的责任从高特权级的 M-mode 转移到了 S-mode，这是现代操作系统设计的常见做法.
+- menvcfg: Machine environment configuration register
+
+    menvcfg 的第 63 位（或 menvcfgh 的第 31 位）名为 STCE（STimecmp Enable），设置为 1 时，用于启用 S 模式下的 stimecmp
 - mepc: Machine Exception Program Counter, 机器模式先前的特权模式
 
     mret 指令在返回时，会从 mepc 寄存器中获取下一条要执行的指令地址
