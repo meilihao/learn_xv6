@@ -13,6 +13,17 @@ ref:
 - [**MIT 6.S081**](https://blog.csdn.net/zzy980511/category_11740137.html)
 - [XV6实验(2020)](https://blog.csdn.net/weixin_47037146/article/details/128859088)
 
+## labs
+ref:
+- [schedule](https://pdos.csail.mit.edu/6.S081/2025/schedule.html)
+- [book-riscv-rev5.pdf](https://pdos.csail.mit.edu/6.S081/2025/xv6/book-riscv-rev5.pdf)
+- [Cyrus-iwnl/xv6-labs-2022](https://github.com/Cyrus-iwnl/xv6-labs-2022)
+	- [**讲课**](https://mit-public-courses-cn-translatio.gitbook.io/mit6-s081/)
+	- [**实验和手册**](http://xv6.dgs.zone/)
+- [TJOS-xv6-labs-2024](https://github.com/xing05188/TJOS-xv6-labs-2024)
+
+[`git clone git://g.csail.mit.edu/xv6-labs-2025`](https://pdos.csail.mit.edu/6.S081/2025/labs/util.html), 较2024有较多变化.
+
 ## 环境
 ref:
 - [xv6-riscv环境搭建](https://groverzhu.github.io/2021/08/17/xv6-riscv%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/)
