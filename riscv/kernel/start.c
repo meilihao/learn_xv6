@@ -35,7 +35,7 @@ start()
 
   // configure Physical Memory Protection to give supervisor mode
   // access to all of physical memory.
-  w_pmpaddr0(0x3fffffffffffffull); // 0x3FFFFFFFFFFFFFULL（即 50 个 1)???
+  w_pmpaddr0(0x3fffffffffffffull); // 0x3FFFFFFFFFFFFFULL, 54 位全 1（2^54 - 1）, max(addr)=0x3FFFFFFFFFFFFF<<2, 已是最大地址值
   w_pmpcfg0(0xf); // 0xf 通常表示读、写、执行权限都启用
 
   // ask for clock interrupts.

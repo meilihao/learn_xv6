@@ -41,4 +41,4 @@ end~PHYSTOP=free ram space
 
 [riscv特权文档 - The RISC-V Instruction Set Manual Volume II: Privileged Architecture](https://riscv.atlassian.net/wiki/spaces/HOME/pages/16154769/RISC-V+Technical+Specifications) 12.x章节中定义了Sv32、Sv39、Sv48和Sv57 这几种虚拟地址, sv后面的数字表示支持多少位的虚拟地址. 其中Sv32是用于32位系统的，Sv39、Sv48和Sv57则是用于64位系统. Sv39、Sv48、Sv57分别也就对应三级页表，四级页表和五级页表.
 
-RISC-V Linux支持sv32、sv39、sv48等虚拟地址格式，分别代表32为虚拟地址、38位虚拟地址和48位虚拟地址RISC-V Linux默认也是使用sv39格式，sv39的虚拟地址、物理地址、PTE格式如下
+RISC-V Linux支持sv32、sv39、sv48等虚拟地址格式，分别代表32为虚拟地址、38位虚拟地址和48位虚拟地址. xv6和RISC-V Linux默认均是使用sv39格式，sv39的虚拟地址、物理地址、PTE格式如下

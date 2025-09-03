@@ -64,19 +64,71 @@ RV32 和RV64 的区别在于指令集所支持的位数不同，RV32 是32 位�
     - MIE (Machine Interrupt Enable): 记录中断是否被启用
 - PMP 控制寄存器/PMP 地址寄存器
 
-    在 RISC-V 特权指令集手册 的第 3.7 节中介绍了内存保护机制, 是 RISC-V 的一种硬件机制，用于在机器模式（M-mode）或监管者模式（S-mode）下定义物理内存区域的访问权限（读、写、执行）. 每一个 PMP(Physical Memory Protection) 项定义了一个访问控制区域. 一个 PMP 项包括一个 8 位控制寄存器和一个地址寄存器，处理器支持最多 64 个 PMP 项。PMP 访问控制区域的大小是可设置的，最小可支持 4 字节大小的区域.
+    物理内存保护（PMP, Physical Memory Protection, 在 RISC-V 特权指令集手册 的第 3.7 节）是一种硬件级别的安全特性，主要在机器模式（M-mode）或监管者模式（S-mode）下提供细粒度的内存访问控制, 提供对物理内存的保护和隔离。它通过定义一组规则来限制处理器对特定物理地址范围的访问权限.
 
-    - mpaddr0-pmpaddrN：地址寄存器（设置内存区域的结束地址或地址范围）
+    RISC-V架构下的PMP模块允许配置多个独立的区域描述符，这些描述符用于指定某个物理地址范围及其对应的访问权限。具体来说，每个PMP条目由以下几个部分组成:
+    1. 地址匹配模式
+    1. 大小：受控区域的尺寸
+    1. 访问权限：包括读取、写入和执行权限等
+
+    当CPU尝试访问某段物理地址时，PMP单元会逐一检查所有已启用的PMP条目，判断该操作是否违反设定的规则。如果发现违规行为，则触发相应的异常处理程序.
+
+    每一个 PMP entry定义了一个访问控制区域. 一个 PMP 项包括一个 8 位控制寄存器和一个MXLEN-bit长度地址寄存器，支持的条目数量和不同CPU硬件实现相关，通常entry数量是0、16、或64不等，具体数量需要根据对应CPU的手册确定，软件不能使用超过CPU规定的entry数量
+
+    对于 RV32，十六个 CSR（pmpcfg0–pmpcfg15）保存 64 个 PMP 条目的配置 pmp0cfg–pmp63cfg，如图 30 所示。对于 RV64，八个偶数 CSR（pmpcfg0、pmpcfg2、...、pmpcfg14）保存 64 个 PMP 条目的配置. 对于 RV64，奇数配置寄存器 pmpcfg1、pmpcfg3、...、pmpcfg15 是非法的.
+
+    每个 PMP 地址寄存器编码 RV32 的 34 位物理地址的第 33-2 位. 对于 RV64，每个 PMP 地址寄存器编码 56 位物理地址的第 55-2 位. 并非所有物理地址位都能实现，因此 pmpaddr 寄存器是 WARL.
+
+    > RISC-V 规范规定，PMP 匹配的内存区域必须以 4 字节为单位对齐, 最低两位始终为 00，可以被隐式地假定. 这简化了硬件设计，减少了寄存器的位数，同时强制了对齐要求.
+
+    - pmpaddr0-pmpaddrN：地址寄存器（设置内存区域的结束地址或地址范围）
+
+        设置pmpaddr的时候需要将传入的实际物理内存地址左移2bit，即phy_addr << 2. TOR模式可以通过2个entry之间的pmpaddr得到受保护的内存大小，而NA4是固定的4bytes大小，故不用在pmpaddr中传入内存大小
+
     - pmpcfg0-pmpcfgN：配置寄存器（定义访问权限和模式）
 
-        模式
-        1. NAPOT（Naturally Aligned Power-of-Two, 任意幂次大小的对齐区域）:
-            1. pmpaddrN表示一个内存区域的大小和基地址基地址为 0（因为 NAPOT 要求自然对齐，且该值对应地址 0）
-        1. TOR（Top of Range，上边界）
-        1. NA4（4 字节对齐的精确匹配）
+    PMP每一个entry的配置主要有8bit组成，其定义如下：
+
+        bit             width          field_name         desc note
+        0                 1                    R                  Read
+        1                 1                    W                 Write
+        2                 1                    X                  Execute
+        3-4              2                    A                   Address matching                                                                - 00:  OFF(disable)
+                                                                  - 01：TOR (top of range)
+                                                                  - 10：NA4
+                                                                  - 11:  NAPOT
+        5-6              2                                          Reserved Fix 0
+        7                 1                    L                     Lock
+
+        1. R (Read)
+            当R==1时，表示该PMP entry对应的地址区域可读，反之不可读（如果读则触发exception）；
+        2. W (Write)
+            当W==1时，表示该PMP entry对应的地址区域可写，反之不可写（如果写则触发exception）；
+        3. X (Execute)
+            当X==1时，表示该PMP entry对应的地址区域可执行，反之不可执行（如果执行则触发exception）；
+        4. A (Address matching)
+            1. 00（OFF）：该条目是disable的，不会去匹配任何地址
+            1. 01 TOR（Top of Range，上边界）
+
+               需要使用2个PMP条目定义一块内存保护区域，比如entry[i-1]和entry[i]，同时entry[i-1]的pmpaddr[i-1]必须小于entry[i]的pmpaddr[i],仅仅需要把entry[i]的pmpcfg[i]设置为TOR模式即可（不用考虑entry[i-1]中pmpcfg[i-1]的权限配置），如果i=0，则小于pmpaddr[0]的任何内存地址的访问权限都受entry[0]的配置影响，如果pmpaddr[i-1]>= pmpaddr[i],并且pmpcfg[i]设置TOR模式，则entry[i]匹配不到任何地址
+
+               该地址区域可表示为 [pmpaddr(X-1), pmpaddrX)。特别的是，PMP 条目 0 表示的地址区域为 [0, pmpaddr0)。如果 pmpaddri−1 ≥ pmpaddri，则 PMP 条目 i 不匹配任何地址，即区域为空
+
+            1. 02 NA4（naturally aligned four-byte region, 4 字节对齐的精确匹配）
+
+                NA4是NAPOT的特殊情况，既受保护的内存大小刚好为4byte
+            1. 03 NAPOT（Naturally Aligned Power-of-Two, 任意幂次大小的对齐区域）
+
+                内存大小必须是2的次幂大小，且最小值为8bytes
+
+                PMP 地址寄存器的低位来用来表示区域的大小，高位表示以 4 字节为单位的基址，中间用一个 0 隔开. 如果用 G 表示 0 的下标，则 PMP 访问控制区域大小为 2^(G+3) 字节.
+
+                公式: pmpaddr = (phy_addr << 2) | ((phy_size>>3) - 1);//only for NAPOT mode
+
+        5. L（Lock）：如果Lock位被置1，则PMP的entry就会被锁定，写PMP的配置寄存器和地址寄存器都会被忽略，只有复位硬件才能解除锁定，当lock为0时，只有在用户模式和超级管理员模式下访问PMP配置的内存区域才会受影响，机器模式不受影响，此时机器模式可以访问任何内存区域，但是当lock为1时，所有模式下访问PMP配置的内存区域都会受影响，包括机器模式
 
     ```c
-    w_pmpaddr0(0x3fffffffffffffull); // 0x3FFFFFFFFFFFFFULL = 50位全 1, 它是一个特殊的 NAPOT 模式值，它表示一个极大的连续内存区域（几乎覆盖整个64位地址空间）
+    w_pmpaddr0(0x3fffffffffffffull); // 0x3FFFFFFFFFFFFFULL = 54位全 1, 已是riscv规范中的max值, addr=0x3FFFFFFFFFFFFF<<2
     w_pmpcfg0(0xf) // 0xF = 1111b = R=1, W=1, X=1, A1:A0=1 (NAPOT（地址范围压缩表示方式）模式)
     ```
 
