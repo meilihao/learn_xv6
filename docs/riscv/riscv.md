@@ -1,5 +1,9 @@
 # riscv
 
+## 规范
+ref:
+- [ISRC-CAS/riscv-isa-manual-cn](https://github.com/ISRC-CAS/riscv-isa-manual-cn)
+
 ## 模式
 RISC-V总共有三种模式：
 - M-mode （Machine Mode）
@@ -33,7 +37,7 @@ RV32 和RV64 的区别在于指令集所支持的位数不同，RV32 是32 位�
 - menvcfg: Machine environment configuration register
 
     menvcfg 的第 63 位（或 menvcfgh 的第 31 位）名为 STCE（STimecmp Enable），设置为 1 时，用于启用 S 模式下的 stimecmp
-- mepc: Machine Exception Program Counter, 机器模式先前的特权模式
+- mepc: Machine Exception Program Counter, 机器异常程序计数器. 当发生异常或中断时, cpu会将当前的pc值保存到这个寄存器中, 以便中断处理结束后能返回
 
     mret 指令在返回时，会从 mepc 寄存器中获取下一条要执行的指令地址
 
@@ -44,16 +48,14 @@ RV32 和RV64 的区别在于指令集所支持的位数不同，RV32 是32 位�
     1. 异常处理完毕后，返回到 mepc 保存的地址，继续执行
 - mideleg：Machine Interrupt Delegation Register：和medeleg类似，用于委托中断
 - mie: 机器模式中断使能寄存器. 类似sie, 记录处理器目前能处理和必须忽略的中断，即相应的中断使能位
-- mhartid : Machine Hart ID Register
+- mhartid : Machine Hart ID Register, 硬件线程id, 从0开始
 
-    一个控制和状态寄存器（CSR），用于存储当前硬件线程（hart）的标识符, mhartid从0开始
-
-    在多核处理器中，每个核心可能有一个或多个硬件线程，每个硬件线程都有一个唯一的 hartid.
+    在多核处理器中，每个核心可能有一个或多个硬件线程，每个硬件线程都有一个唯一的 hartid, 通过读取它就可以知道代码运行在哪个core上
 
     在多核处理器中，每个核心（或硬件线程）都有自己独立的一套寄存器集。这意味着如果有两个核心，每个核心有 32 个通用寄存器，那么整个处理器实际上会有 64 个通用寄存器。每个核心的寄存器集是独立的，互不干扰.
-- mstatus:  Machine Status
+- mstatus:  Machine Status, 机器状态寄存器
 
-    mstatus 寄存器包含了许多重要的处理器状态位，如特权模式、中断使能等
+    mstatus 寄存器包含了许多重要的处理器状态位，如比如全局中断使能位, 先前的特权级, 虚拟内存模式等, kernel通过它来切换特权级(M->S)
 
     - MPP (Machine Previous Privilege, 机器模式先前的特权模式): 指示在发生异常或中断之前的特权级别，当使用mret返回时，处理器会切换回原来的级别，在第11 12位
         - 00: User Mode
@@ -62,7 +64,13 @@ RV32 和RV64 的区别在于指令集所支持的位数不同，RV32 是32 位�
     - MPIE (Machine Previous Interrupt Enable): 记录在发生异常或中断之前，中断是否被启用。
     - MIE (Machine Interrupt Enable): 允许或禁止中断。当为1时，中断被启用。
     - MIE (Machine Interrupt Enable): 记录中断是否被启用
-- PMP 控制寄存器/PMP 地址寄存器
+- mcauese/scause : Machine/Supervisor Exception Cause, 机器/监管者异常原因寄存器. 记录发生异常或中断的原因, 比如缺页异常, 非法指令或外部中断
+- mscratch/sscratch: Machine/Supervisor Scratch, 机器/监管者临时寄存器
+
+    在陷阱处理的早期阶段, 这是一个非常有用的临时寄存器. 通常内核会把指向当前进程/cpu的内核栈顶的指针放在sscratch中, 这样陷阱处理程序一进来就可以立即切换到内核栈, 而不用破坏任何用户寄存器
+- mtvec/stvec : Machine/Supervisor trap vector base address, 机器/监管者陷阱向量基地址寄存器, 指向陷阱程序的入口地址. 当异常发生时, cpu会跳转到这个地址
+- mtval/stval : Machine/Supervisor trap value, 机器/监管者陷阱值寄存器，提供与异常相关的附加信息. 例如, 在缺页异常时, 它会保存导致异常的虚拟地址; 在非法指令异常时, 它会保存导致异常的指令
+- PMP 控制寄存器/PMP 地址寄存器: pmpaddrN/pmpcfgN
 
     物理内存保护（PMP, Physical Memory Protection, 在 RISC-V 特权指令集手册 的第 3.7 节）是一种硬件级别的安全特性，主要在机器模式（M-mode）或监管者模式（S-mode）下提供细粒度的内存访问控制, 提供对物理内存的保护和隔离。它通过定义一组规则来限制处理器对特定物理地址范围的访问权限.
 
@@ -128,13 +136,14 @@ RV32 和RV64 的区别在于指令集所支持的位数不同，RV32 是32 位�
         5. L（Lock）：如果Lock位被置1，则PMP的entry就会被锁定，写PMP的配置寄存器和地址寄存器都会被忽略，只有复位硬件才能解除锁定，当lock为0时，只有在用户模式和超级管理员模式下访问PMP配置的内存区域才会受影响，机器模式不受影响，此时机器模式可以访问任何内存区域，但是当lock为1时，所有模式下访问PMP配置的内存区域都会受影响，包括机器模式
 
     ```c
-    w_pmpaddr0(0x3fffffffffffffull); // 0x3FFFFFFFFFFFFFULL = 54位全 1, 已是riscv规范中的max值, addr=0x3FFFFFFFFFFFFF<<2
+    w_pmpaddr0(0x3fffffffffffffull); // 0x3FFFFFFFFFFFFFULL = 54位全 1, addr=0x3FFFFFFFFFFFFFULL<<2, 已接近riscv规范中的pa的max值(pa为56位)
     w_pmpcfg0(0xf) // 0xF = 1111b = R=1, W=1, X=1, A1:A0=1 (NAPOT（地址范围压缩表示方式）模式)
     ```
 
 - satp : Supervisor Address Translation and Protection Register
 
-    监督地址转换和保护寄存器，用于控制和配置页表的地址. 它定义了当前页表的位置和格式，以及一些与地址翻译和保护相关的信息
+    监督地址转换和保护寄存器，虚拟内存的核心. 包含了页表的物理基地址和当前使用的虚拟地址模式(比如sv39). cpu的mmu靠它来查找页表进行地址转换. 它用于控制和配置页表的地址. 它定义了当前页表的位置和格式，以及一些与地址翻译和保护相关的信息
+- sepc: Supervisor Exception Program Counter, 监管者异常程序计数器. 当发生异常或中断时, cpu会将当前的pc值保存到这个寄存器中, 以便中断处理结束后能返回
 - sie:Supervisor Interrupt Enable：用于控制哪些中断可以在 Supervisor 模式下被启用或禁用
 
     - SEIE (Supervisor External Interrupt Enable):
@@ -148,6 +157,8 @@ RV32 和RV64 的区别在于指令集所支持的位数不同，RV32 是32 位�
     - SSIE (Supervisor Soft Interrupt Enable):
 
         软中断。当 SSIE 位被设置为 1 时，允许软中断在 Supervisor 模式下触发
+
+- sstatus: supervisor status register, 监管者状态寄存器, 是mstatus的子集, 拥有S-Mode, 包含监管者模式下的中断使能位(SIE), 以及用户模式(U-Mode)的中断是否使能(SPIE)
 
 ## 指令
 - csrr: Control and Status Register Read

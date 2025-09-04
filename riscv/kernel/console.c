@@ -46,11 +46,11 @@ struct {
   
   // input
 #define INPUT_BUF_SIZE 128
-  char buf[INPUT_BUF_SIZE];
+  char buf[INPUT_BUF_SIZE]; // 循环缓冲区, 暂存UART即将要发送的数据
   uint r;  // Read index
   uint w;  // Write index
   uint e;  // Edit index
-} cons;
+} cons; // cons=控制台
 
 //
 // user write()s to the console go here.
@@ -59,11 +59,13 @@ int
 consolewrite(int user_src, uint64 src, int n)
 {
   char buf[32];
-  int i = 0;
+  int i = 0; // 记录已写入的字节数
 
+  // 通过一个循环，以小块（32字节）的方式，将数据从源缓冲区复制并写入到控制台，而不是一次性处理所有数据.
+  // 这样做有几个好处，例如避免在栈上分配过大的临时缓冲区，以及在处理大量数据时提供更细粒度的控制
   while(i < n){
     int nn = sizeof(buf);
-    if(nn > n - i)
+    if(nn > n - i) // 检查剩余待写入的字节数。如果剩余的字节数小于32，则将 nn 调整为剩余的字节数，以避免读取越界
       nn = n - i;
     if(either_copyin(buf, user_src, src+i, nn) == -1)
       break;

@@ -27,10 +27,14 @@ kernel.ld让kernel也是从0x80000000开始执行的, 它还定义了几个特�
 
 layout:
 1. KERNBASE: 0x80000000
+
+  内核起始位置，内核加载到这个部分开始执行
 1. etext:    0x80007000
 1. stack0:   0x80007860
 1. end:      0x80020b68
 1. PHYSTOP:  0x88000000
+
+  （系统认为的）物理地址终止地址，所有代码、进程内存不会超过这个范围，即可用的部分为KERNBASE直到PHYSTOP的空间
 
 end~PHYSTOP=free ram space
 
@@ -38,7 +42,15 @@ end~PHYSTOP=free ram space
 - [Virtual Memory Layout on RISC-V Linux](https://www.kernel.org/doc/html/v6.6/riscv/vm-layout.html)
 
 	目前最新的64位linux支持Sv39和Sv48两种格式. 内核起始地址也是0x80000000
+- [RISC-V 内存虚拟化简析（二）](https://tinylab.org/riscv-kvm-mem-virt-2/)
+
+  含SvX va/pa的说明
+
+  SvX 表示存储系统中使用 X 位的虚拟地址，不同位数的虚拟地址对应的物理地址的位宽也会有所不同（Sv32 的 PA 位宽为 34，其它均为 56 位），除去 VA 和 PA 中的 12 位 Page Offset，每个页表项（PTE）实际存储的是物理页号（PPN）。对应页表项中 PPN 的位宽为 22（Sv32）或 44（Sv39，Sv48，Sv57）
 
 [riscv特权文档 - The RISC-V Instruction Set Manual Volume II: Privileged Architecture](https://riscv.atlassian.net/wiki/spaces/HOME/pages/16154769/RISC-V+Technical+Specifications) 12.x章节中定义了Sv32、Sv39、Sv48和Sv57 这几种虚拟地址, sv后面的数字表示支持多少位的虚拟地址. 其中Sv32是用于32位系统的，Sv39、Sv48和Sv57则是用于64位系统. Sv39、Sv48、Sv57分别也就对应三级页表，四级页表和五级页表.
 
-RISC-V Linux支持sv32、sv39、sv48等虚拟地址格式，分别代表32为虚拟地址、38位虚拟地址和48位虚拟地址. xv6和RISC-V Linux默认均是使用sv39格式，sv39的虚拟地址、物理地址、PTE格式如下
+xv6使用sv39格式，sv39的虚拟地址、物理地址、PTE格式如下
+
+## mem
+![内存架构](/docs/riscv/misc/img/mem_arch.png)

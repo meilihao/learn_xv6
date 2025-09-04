@@ -25,6 +25,7 @@ static struct {
 
 static char digits[] = "0123456789abcdef";
 
+// 负责将整数转换为字符串并输出
 static void
 printint(long long xx, int base, int sign)
 {
@@ -55,33 +56,36 @@ printptr(uint64 x)
   int i;
   consputc('0');
   consputc('x');
-  for (i = 0; i < (sizeof(uint64) * 2); i++, x <<= 4)
-    consputc(digits[x >> (sizeof(uint64) * 8 - 4)]);
+  for (i = 0; i < (sizeof(uint64) * 2); i++, x <<= 4) // 4bit转换为一个字符. 将 x 的值向左位移 4 位, 将下一个要打印的 4 位十六进制数移到最高位
+    consputc(digits[x >> (sizeof(uint64) * 8 - 4)]); // 将 x 向右位移 60 位, 这会把 x 的最高 4 位（也就是最左边的 4 位）移到最低位
 }
 
 // Print to the console.
 int
 printf(char *fmt, ...)
 {
-  va_list ap;
+  va_list ap; // va_list 是一个宏，用于访问可变参数列表, ap 是一个指向参数列表的指针
   int i, cx, c0, c1, c2;
-  char *s;
+  char *s; // 用于处理 %s 格式
 
+  // 在非紧急状态下，获取一个锁 (pr.lock). 因为 printf 可能会在多核环境中被多个 CPU 核心同时调用.
+  // 锁确保了同一时间只有一个核心可以执行 printf，防止输出混乱
   if(panicking == 0)
     acquire(&pr.lock);
 
-  va_start(ap, fmt);
+  va_start(ap, fmt); // 这是一个宏，用于初始化 ap 指针，使其指向可变参数列表的第一个参数。它以最后一个固定参数 (fmt) 为基准来定位可变参数
   for(i = 0; (cx = fmt[i] & 0xff) != 0; i++){
-    if(cx != '%'){
+    if(cx != '%'){ // 如果当前字符不是 %，说明它是一个普通字符
       consputc(cx);
       continue;
     }
-    i++;
+    i++; // 跳到下一个字符，准备解析格式占位符
     c0 = fmt[i+0] & 0xff;
     c1 = c2 = 0;
     if(c0) c1 = fmt[i+1] & 0xff;
     if(c1) c2 = fmt[i+2] & 0xff;
     if(c0 == 'd'){
+      // va_arg(ap, int) 从参数列表中取出下一个 int 类型的参数
       printint(va_arg(ap, int), 10, 1);
     } else if(c0 == 'l' && c1 == 'd'){
       printint(va_arg(ap, uint64), 10, 1);
@@ -125,7 +129,7 @@ printf(char *fmt, ...)
     }
 
   }
-  va_end(ap);
+  va_end(ap); // 这是一个宏，用于清理 va_list 资源，在所有参数处理完毕后调用
 
   if(panicking == 0)
     release(&pr.lock);

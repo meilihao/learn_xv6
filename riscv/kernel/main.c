@@ -32,7 +32,7 @@ main()
     __sync_synchronize();
     started = 1;
   } else {
-    while(started == 0)
+    while(started == 0)  //等待CPU0初始化完成
       ;
     __sync_synchronize();
     printf("hart %d starting\n", cpuid());

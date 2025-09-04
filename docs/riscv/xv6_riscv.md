@@ -44,7 +44,7 @@ gcc-riscv64-unknown-elf: riscv跨平台编译工具链
 qemu-system-misc: 按照riscv模拟器
 gdb-multiarch: gdb调试器, 支持调试其他arch
 
-调试: 执行make qemu-gdb(退出:按下 Ctrl+a，然后按下 x), 再在同一文件夹下另开一个窗口输入:
+调试: 执行make CPUS=1 qemu-gdb(退出:按下 Ctrl+a，然后按下 x. 使用`CPUS=1`避免多核干扰调试), 再在同一文件夹下另开一个窗口输入:
 ```bash
 # gdb-multiarch -q kernel/kernel
 (gdb) source .gdbinit # gdbinit没有生效时可手动加载, 比如因"auto-load safe-path"被拒绝时

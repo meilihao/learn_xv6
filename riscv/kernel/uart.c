@@ -13,12 +13,15 @@
 // the UART control registers are memory-mapped
 // at address UART0. this macro returns the
 // address of one of the registers.
+// Reg实质上是UART在MMIO中的基址加上对应寄存器的偏移量来实现的
+// volatile: 告诉编译器，被指针指向的内存位置可能会在程序外部（例如，由硬件）发生改变。因此，编译器不能对针对该地址的读写操作进行优化
+// 这对于直接操作硬件寄存器是必不可少的，因为它确保了每次读写都直接反映到硬件上
 #define Reg(reg) ((volatile unsigned char *)(UART0 + (reg)))
 
 // the UART control registers.
 // some have different meanings for
 // read vs write.
-// see http://byterunner.com/16550.html
+// see http://byterunner.com/16550.html, about `REGISTER BIT MAPS`
 #define RHR 0                 // receive holding register (for input bytes)
 #define THR 0                 // transmit holding register (for output bytes)
 #define IER 1                 // interrupt enable register
@@ -46,13 +49,14 @@ static int tx_chan;           // &tx_chan is the "wait channel"
 extern volatile int panicking; // from printf.c
 extern volatile int panicked; // from printf.c
 
+// 初始化串口芯片16550
 void
 uartinit(void)
 {
   // disable interrupts.
   WriteReg(IER, 0x00);
 
-  // special mode to set baud rate.
+  // special mode to set baud rate. // 进入设置波特率的特殊模式
   WriteReg(LCR, LCR_BAUD_LATCH);
 
   // LSB for baud rate of 38.4K.
@@ -63,12 +67,15 @@ uartinit(void)
 
   // leave set-baud mode,
   // and set word length to 8 bits, no parity.
+  // LCR_EIGHT_BITS设置字长为8bit即一个字节, 无奇偶校验, 并退出设置波特率的模式(bit7置0了)
   WriteReg(LCR, LCR_EIGHT_BITS);
 
   // reset and enable FIFOs.
+  // 清除 FIFO 中的所有数据，确保缓冲区为空，以避免处理之前残留的脏数据
   WriteReg(FCR, FCR_FIFO_ENABLE | FCR_FIFO_CLEAR);
 
   // enable transmit and receive interrupts.
+  // 当 UART 接收到数据或发送缓冲区变空时，CPU 将会收到中断信号
   WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);
 
   initlock(&tx_lock, "uart");

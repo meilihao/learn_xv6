@@ -14,7 +14,8 @@ __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
 void
 start()
 {
-  // 当前cpu处于M-Mode
+  // 当前cpu还处于M-Mode
+
   // set M Previous Privilege mode to Supervisor, for mret.
   unsigned long x = r_mstatus();
   x &= ~MSTATUS_MPP_MASK; // 清除MPP的状态
@@ -35,7 +36,7 @@ start()
 
   // configure Physical Memory Protection to give supervisor mode
   // access to all of physical memory.
-  w_pmpaddr0(0x3fffffffffffffull); // 0x3FFFFFFFFFFFFFULL, 54 位全 1（2^54 - 1）, max(addr)=0x3FFFFFFFFFFFFF<<2, 已是最大地址值
+  w_pmpaddr0(0x3fffffffffffffull); // 0x3FFFFFFFFFFFFFULL, 54 位全 1, addr=0x3FFFFFFFFFFFFFULL<<2, 已接近riscv规范中的pa的max值(pa为56位)
   w_pmpcfg0(0xf); // 0xf 通常表示读、写、执行权限都启用
 
   // ask for clock interrupts.
