@@ -4,6 +4,22 @@ ref:
 
    `REGISTER BIT MAPS`的`A2	A1	A0`:表示寄存器位置的偏移地址
 
+```bash
+# qemu-system-riscv64 -machine virt -machine dumpdtb=virt.dtb
+# dtc -I dtb -O dts -o virt.dts virt.dtb
+...
+         serial@10000000 {
+             interrupts = <0x0a>;
+             interrupt-parent = <0x03>;
+             clock-frequency = "\08@";
+             reg = <0x00 0x10000000 0x00 0x100>;
+             compatible = "ns16550a";
+         };
+...
+```
+
+当LSR bit6=1时，向THR写入一个byte, 会显示在终端上
+
 ## 寄存器
 1. IER
 

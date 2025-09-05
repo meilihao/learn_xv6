@@ -1,5 +1,11 @@
 # mem
+xv6基于qemu-system-riscv64 virt开发, 其相关的内存布局见qemu源码的[virt_memmap](https://github.com/qemu/qemu/blob/baa79455fa92984ff0f4b9ae94bed66823177a27/hw/riscv/virt.c#L82)
+
 ```bash
+# --- 通过dts查看内存布局
+# qemu-system-riscv64 -machine virt -machine dumpdtb=virt.dtb
+# dtc -I dtb -O dts -o virt.dts virt.dtb
+# --- 通过qemu monitor查看内存布局
 # qemu-system-riscv64 -monitor stdio # 启动一个 RISC-V 64 位虚拟机，并在终端上打开一个 QEMU 监视器控制台, 此时host cpu负载很高, 注意及时退出
 QEMU 8.2.2 monitor - type 'help' for more information
 (qemu) info mtree # 提供了这个虚拟机的内存地址映射
@@ -19,20 +25,26 @@ address-space: I/O
 kernel.ld让kernel也是从0x80000000开始执行的, 它还定义了几个特殊的符号:
 ```bash
 # readelf -s kernel | grep -E "etext|stack0|end"
+readelf -s kernel/kernel | grep -E "entry|trampoline|etext|stack0|end"
+    16: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS entry.o
+   110: 0000000080006000     0 NOTYPE  GLOBAL DEFAULT    1 trampoline
    158: 0000000080003c14   282 FUNC    GLOBAL DEFAULT    1 end_op
    168: 0000000080007860 32768 OBJECT  GLOBAL DEFAULT    4 stack0
    188: 0000000080020b68     0 NOTYPE  GLOBAL DEFAULT    4 end
    192: 0000000080007000     0 NOTYPE  GLOBAL DEFAULT    1 etext
+   197: 0000000080006000     0 NOTYPE  GLOBAL DEFAULT    1 _trampoline
+   217: 0000000080000000     0 NOTYPE  GLOBAL DEFAULT    1 _entry
 ```
 
 layout:
 1. KERNBASE: 0x80000000
 
   内核起始位置，内核加载到这个部分开始执行
-1. etext:    0x80007000
-1. stack0:   0x80007860
-1. end:      0x80020b68
-1. PHYSTOP:  0x88000000
+1. trampoline: 0x80006000
+1. etext:      0x80007000
+1. stack0:     0x80007860
+1. end:        0x80020b68
+1. PHYSTOP:    0x88000000
 
   （系统认为的）物理地址终止地址，所有代码、进程内存不会超过这个范围，即可用的部分为KERNBASE直到PHYSTOP的空间
 
@@ -50,7 +62,8 @@ end~PHYSTOP=free ram space
 
 [riscv特权文档 - The RISC-V Instruction Set Manual Volume II: Privileged Architecture](https://riscv.atlassian.net/wiki/spaces/HOME/pages/16154769/RISC-V+Technical+Specifications) 12.x章节中定义了Sv32、Sv39、Sv48和Sv57 这几种虚拟地址, sv后面的数字表示支持多少位的虚拟地址. 其中Sv32是用于32位系统的，Sv39、Sv48和Sv57则是用于64位系统. Sv39、Sv48、Sv57分别也就对应三级页表，四级页表和五级页表.
 
-xv6使用sv39格式，sv39的虚拟地址、物理地址、PTE格式如下
+xv6-riscv采用的即为sv39的方式:
+![sv39](/docs/riscv/misc/img/mem/sv39.png)
 
 ## mem
 ![内存架构](/docs/riscv/misc/img/mem_arch.png)

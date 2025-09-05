@@ -18,6 +18,7 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 extern char trampoline[]; // trampoline.S
 
 // Make a direct-map page table for the kernel.
+// 创建内核的页表
 pagetable_t
 kvmmake(void)
 {
@@ -36,13 +37,17 @@ kvmmake(void)
   kvmmap(kpgtbl, PLIC, PLIC, 0x4000000, PTE_R | PTE_W);
 
   // map kernel text executable and read-only.
+  // 内核的代码段（.text）
   kvmmap(kpgtbl, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
 
   // map kernel data and the physical RAM we'll make use of.
+  // 内核的数据段（.data 和 .bss）以及后续分配的物理内存
   kvmmap(kpgtbl, (uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);
 
   // map the trampoline for trap entry/exit to
   // the highest virtual address in the kernel.
+  // trampoline代码实际上在kernel text中，所以实际上，它在页表中被映射了两次.
+  // 这也是页表的强大之处，可以随意进行任意模式的映射（但实际物理空间只占用一次）
   kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
 
   // allocate and map a kernel stack for each process.
@@ -94,17 +99,23 @@ kvminithart()
 //   21..29 -- 9 bits of level-1 index.
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
+// pagetable: 根页表
+// 在TLB中已经有了walk这一功能，分页、创建页表项、三级页表的维护实际上都是应该由硬件完成的.
+// 而这里还要有walk的原因是，首先它要创建最初的三级页表，其次就是有时内核执行用户态内核态拷贝时会使用用户页表进行读取数据，并拷贝到内核中，此时可能需要手动模拟walk
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
   if(va >= MAXVA)
     panic("walk");
 
-  for(int level = 2; level > 0; level--) {
+  for(int level = 2; level > 0; level--) { // 处理level 2,1
+    // 页表项pte=物理页号 (Physical Page Number, PPN, 44位) + 标志位 (Flags, 10位)
     pte_t *pte = &pagetable[PX(level, va)];
-    if(*pte & PTE_V) {
+    if(*pte & PTE_V) { // 如果存在pte并且有效，合法，从PTE中取出下一级页表物理地址并替换pagetable
       pagetable = (pagetable_t)PTE2PA(*pte);
     } else {
+      // 不存在pte，或者该pte已经是无效pte
+      // 如果允许分配则尝试为该pte分配新的下一级页表
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
       memset(pagetable, 0, PGSIZE);
@@ -158,13 +169,15 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     panic("mappages: size");
   
   a = va;
-  last = va + size - PGSIZE;
+  last = va + size - PGSIZE; // 要映射的最后一个页面的虚拟地址
   for(;;){
+    // walk: 遍历页表树（对于 RV64 是三级）来找到正确的 PTE. 1, 告诉 walk，如果中间的页表页不存在，就自动创建它们
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
-    if(*pte & PTE_V)
+    if(*pte & PTE_V) // 检查找到的 PTE 是否已经有效（即 PTE_V 位是否已设置）。如果有效，说明该虚拟地址已经被映射过了. mappages 不允许重复映射
       panic("mappages: remap");
-    *pte = PA2PTE(pa) | perm | PTE_V;
+    // 将va对应的pa转换成PTE形式, 并加上权限，以及有效flag
+    *pte = PA2PTE(pa) | perm | PTE_V; // 设置 PTE_V 位，让 MMU 知道这个页表项是有效的，可以用来进行地址转换
     if(a == last)
       break;
     a += PGSIZE;

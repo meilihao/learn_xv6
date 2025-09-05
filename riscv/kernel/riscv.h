@@ -345,15 +345,15 @@ sfence_vma()
 }
 
 typedef uint64 pte_t;
-typedef uint64 *pagetable_t; // 512 PTEs
+typedef uint64 *pagetable_t; // 512 PTEs = PGSIZE/8. 它指向一个pte数组, 根据c语言的语法, 数组成员大小是uint64
 
 #endif // __ASSEMBLER__
 
 #define PGSIZE 4096 // bytes per page
 #define PGSHIFT 12  // bits of offset within a page
 
-#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
-#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
+#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1)) // 向上取整
+#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))           // 向下取整
 
 #define PTE_V (1L << 0) // valid
 #define PTE_R (1L << 1)
@@ -362,16 +362,16 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define PTE_U (1L << 4) // user can access
 
 // shift a physical address to the right place for a PTE.
-#define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)
+#define PA2PTE(pa) ((((uint64)pa) >> 12) << 10) // 物理地址转换成PTE，实际上是右移12位去掉offset，然后左移10位预留flags位
 
-#define PTE2PA(pte) (((pte) >> 10) << 12)
+#define PTE2PA(pte) (((pte) >> 10) << 12) // PTE转换成物理地址，实际上是左移10位去掉flags，右移补上12位0（页表都是这样对齐的）
 
 #define PTE_FLAGS(pte) ((pte) & 0x3FF)
 
 // extract the three 9-bit page table indices from a virtual address.
 #define PXMASK          0x1FF // 9 bits
 #define PXSHIFT(level)  (PGSHIFT+(9*(level)))
-#define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)
+#define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK) // 从虚拟地址va中提取出第level级页表索引
 
 // one beyond the highest possible virtual address.
 // MAXVA is actually one bit less than the max allowed by

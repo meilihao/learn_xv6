@@ -36,6 +36,7 @@ start()
 
   // configure Physical Memory Protection to give supervisor mode
   // access to all of physical memory.
+  // 不设置PMP, S-Mode根本访问不了物理内存
   w_pmpaddr0(0x3fffffffffffffull); // 0x3FFFFFFFFFFFFFULL, 54 位全 1, addr=0x3FFFFFFFFFFFFFULL<<2, 已接近riscv规范中的pa的max值(pa为56位)
   w_pmpcfg0(0xf); // 0xf 通常表示读、写、执行权限都启用
 

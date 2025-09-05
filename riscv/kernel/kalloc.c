@@ -34,8 +34,8 @@ void
 freerange(void *pa_start, void *pa_end)
 {
   char *p;
-  p = (char*)PGROUNDUP((uint64)pa_start);
-  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+  p = (char*)PGROUNDUP((uint64)pa_start);         // p 是比pa_start地址高，且最近的一个4k对齐页
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE) // 从 pa_start 内存对齐后的页，到 pa_end 的每个页都释放掉，并加入到空闲页链表中
     kfree(p);
 }
 
@@ -48,6 +48,7 @@ kfree(void *pa)
 {
   struct run *r;
 
+  // 安全校验: 如果该页不是 PGSIZE 的整数倍，或者小于第一个可用内存的地址，或者大于最大可用内存地址, 就陷入恐慌(panic)
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
 
@@ -56,6 +57,7 @@ kfree(void *pa)
 
   r = (struct run*)pa;
 
+  // 效果: kmem.freelist->pN->...->p2->p1
   acquire(&kmem.lock);
   r->next = kmem.freelist;
   kmem.freelist = r;
@@ -73,7 +75,7 @@ kalloc(void)
   acquire(&kmem.lock);
   r = kmem.freelist;
   if(r)
-    kmem.freelist = r->next;
+    kmem.freelist = r->next; // 取出pN
   release(&kmem.lock);
 
   if(r)
