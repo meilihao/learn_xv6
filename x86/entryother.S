@@ -1,7 +1,8 @@
 #include "asm.h"
 #include "memlayout.h"
 #include "mmu.h"
-	
+
+# non-boot CPU ("AP"): 非引导处理器
 # Each non-boot CPU ("AP") is started up in response to a STARTUP
 # IPI from the boot CPU.  Section B.4.2 of the Multi-Processor
 # Specification says that the AP will start in real mode with CS:IP

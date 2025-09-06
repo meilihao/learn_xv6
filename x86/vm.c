@@ -179,7 +179,7 @@ switchuvm(struct proc *p)
 
   pushcli();
   mycpu()->gdt[SEG_TSS] = SEG16(STS_T32A, &mycpu()->ts,
-                                sizeof(mycpu()->ts)-1, 0);
+                                sizeof(mycpu()->ts)-1, 0); // 根据 x86 规范 (Limit = Size - 1)，再减去 1 得到描述符的正确大小值
   mycpu()->gdt[SEG_TSS].s = 0;
   mycpu()->ts.ss0 = SEG_KDATA << 3; // 设置ss0，esp0的意思是：该进程以后被中断或者trap时，只要进入kernel，就使用这个stack，即trap时将使用进程的内核栈
   mycpu()->ts.esp0 = (uint)p->kstack + KSTACKSIZE; // 该进程内核栈的栈底

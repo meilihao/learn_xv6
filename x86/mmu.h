@@ -11,7 +11,7 @@
 
 #define CR4_PSE         0x00000010      // Page size extension
 
-// various segment selectors.
+// various segment selectors. // 相关段在GDT中的index
 #define SEG_KCODE 1  // kernel code
 #define SEG_KDATA 2  // kernel data+stack
 #define SEG_UCODE 3  // user code
@@ -23,6 +23,9 @@
 
 #ifndef __ASSEMBLER__
 // Segment Descriptor
+// 在C语言中，结构体或联合体定义中字段名称后的冒号（:）用于指定位域（bit-field）, 以便精确地模拟arch硬件的复杂位布局
+// 位域的主要目的是将数据紧密地打包到内存中，以节省空间。它允许你访问和操作单个位或一组位，就像它们是独立的变量一样
+// 在 struct segdesc 的定义中，所有字段都使用了位域。这是因为x86的段描述符本身就是由一系列不连续的位字段组成的。通过使用位域，C语言结构体的布局可以精确地映射到硬件所期望的8字节内存布局
 struct segdesc {
   uint lim_15_0 : 16;  // Low bits of segment limit
   uint base_15_0 : 16; // Low bits of segment base address
@@ -39,25 +42,27 @@ struct segdesc {
   uint base_31_24 : 8; // High bits of segment base address
 };
 
-// Normal segment
+// Normal segment, 用于生成segdesc
 #define SEG(type, base, lim, dpl) (struct segdesc)    \
 { ((lim) >> 12) & 0xffff, (uint)(base) & 0xffff,      \
   ((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,       \
   (uint)(lim) >> 28, 0, 0, 1, 1, (uint)(base) >> 24 }
+// g=0, 界限=1B. lim段大小=(lim & 0xfffff)*1B
+// 虽然SEG16硬编码了s=1, 但实际可根据需要修改s=0, 见vm.c
 #define SEG16(type, base, lim, dpl) (struct segdesc)  \
 { (lim) & 0xffff, (uint)(base) & 0xffff,              \
   ((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,       \
   (uint)(lim) >> 16, 0, 0, 1, 0, (uint)(base) >> 24 }
 #endif
 
-#define DPL_USER    0x3     // User DPL
+#define DPL_USER    0x3     // User DPL. 系统调用的DPL=DPL_USER, 它是用户特权级唯一能使用的中断门
 
 // Application segment type bits
 #define STA_X       0x8     // Executable segment
 #define STA_W       0x2     // Writeable (non-executable segments)
 #define STA_R       0x2     // Readable (executable segments)
 
-// System segment type bits
+// System segment type bits // 系统段描述符的type flags
 #define STS_T32A    0x9     // Available 32-bit TSS
 #define STS_IG32    0xE     // 32-bit Interrupt Gate
 #define STS_TG32    0xF     // 32-bit Trap Gate
@@ -169,6 +174,7 @@ struct gatedesc {
 // - dpl: Descriptor Privilege Level -
 //        the privilege level required for software to invoke
 //        this interrupt/trap gate explicitly using an int instruction.
+// args=0表示中断门和陷阱门
 #define SETGATE(gate, istrap, sel, off, d)                \
 {                                                         \
   (gate).off_15_0 = (uint)(off) & 0xffff;                \

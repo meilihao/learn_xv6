@@ -7,6 +7,7 @@
 # memory at physical address 0x7c00 and starts executing in real mode
 # with %cs=0 %ip=7c00.
 
+# 引导处理器BP(boot strap processor)启动
 .code16                       # Assemble for 16-bit mode
 .globl start
 start:
@@ -49,15 +50,15 @@ seta20.2:
   # virtual addresses map directly to physical addresses so that the
   # effective memory map doesn't change during the transition.
   lgdt    gdtdesc
-  movl    %cr0, %eax
-  orl     $CR0_PE, %eax
+  movl    %cr0, %eax     # 将 cr0 寄存器的当前值复制到 eax 寄存器中，以便对其进行修改
+  orl     $CR0_PE, %eax  # 使能cr0 PE 位（Protection Enable，保护模式使能）
   movl    %eax, %cr0
 
 //PAGEBREAK!
   # Complete the transition to 32-bit protected mode by using a long jmp
   # to reload %cs and %eip.  The segment descriptors are set up with no
   # translation, so that the mapping is still the identity mapping.
-  ljmp    $(SEG_KCODE<<3), $start32 # SEG_KCODE from mmu.h; 会设置cs
+  ljmp    $(SEG_KCODE<<3), $start32 # SEG_KCODE from mmu.h; 会设置cs=SEG_KCODE<<3(TI=0, RPL=0)和eip=start32
 
 .code32  # Tell assembler to generate 32-bit code now.
 start32:
@@ -85,13 +86,13 @@ spin:
   jmp     spin
 
 # Bootstrap GDT
-.p2align 2                                # force 4 byte alignment
+.p2align 2                                # force 4 byte alignment # .p2align 2 是一条汇编指令，用于在汇编代码中控制内存对齐. 参数是对齐的幂次方, 2 表示 2^2，即 4 字节
 gdt:
-  SEG_NULLASM                             # null seg
+  SEG_NULLASM                             # null seg # from asm.h
   SEG_ASM(STA_X|STA_R, 0x0, 0xffffffff)   # code seg 0xffffffff=4G # SEG_ASM from asm.h
-  SEG_ASM(STA_W, 0x0, 0xffffffff)         # data seg
+  SEG_ASM(STA_W, 0x0, 0xffffffff)         # data seg # 它不需要额外的“可读”标志，因为在x86架构中，可写的数据段总是可读的
 
 gdtdesc:
-  .word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1
+  .word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1 # gdtdesc - gdt: 计算GDT的字节大小; - 1: GDT大小必须减1，因为x86规范要求大小是最后一个有效字节的偏移量
   .long   gdt                             # address gdt
 
