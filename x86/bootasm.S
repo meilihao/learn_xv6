@@ -91,6 +91,7 @@ gdt:
   SEG_NULLASM                             # null seg # from asm.h
   SEG_ASM(STA_X|STA_R, 0x0, 0xffffffff)   # code seg 0xffffffff=4G # SEG_ASM from asm.h
   SEG_ASM(STA_W, 0x0, 0xffffffff)         # data seg # 它不需要额外的“可读”标志，因为在x86架构中，可写的数据段总是可读的
+# 代码段和数据段的基地址=0, 限长=0xffffffff, 涵盖了整个4GB的虚拟空间, 相当于绕开了x86的分段机制
 
 gdtdesc:
   .word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1 # gdtdesc - gdt: 计算GDT的字节大小; - 1: GDT大小必须减1，因为x86规范要求大小是最后一个有效字节的偏移量

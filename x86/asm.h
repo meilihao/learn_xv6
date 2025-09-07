@@ -2,6 +2,7 @@
 // assembler macros to create x86 segments
 //
 
+// gdt第一项为0. intel为了防止加电后段寄存器未被初始化就进入保护模式而规定的
 #define SEG_NULLASM                                             \
         .word 0, 0;                                             \
         .byte 0, 0, 0, 0
