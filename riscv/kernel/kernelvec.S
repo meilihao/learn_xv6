@@ -9,9 +9,9 @@
 .globl kerneltrap
 .globl kernelvec
 .align 4
-kernelvec:
+kernelvec: # 所有内核态陷阱的统一入口点，确保所有内核中断和异常都能被正确处理
         # make room to save registers.
-        addi sp, sp, -256
+        addi sp, sp, -256 # 分配256B空间, 用于存放需要被保存的寄存器值
 
         # save caller-saved registers.
         sd ra, 0(sp)
@@ -61,4 +61,4 @@ kernelvec:
         addi sp, sp, 256
 
         # return to whatever we were doing in the kernel.
-        sret
+        sret # 监督者模式返回指令, 它会从 sepc 寄存器中加载返回地址，并根据 sstatus 寄存器中的 SPP（监督者模式先前特权级）位，将 CPU 模式切换回 S-mode 或 U-mode

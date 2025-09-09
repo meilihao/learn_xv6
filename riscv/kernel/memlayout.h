@@ -18,6 +18,7 @@
 // PHYSTOP -- end RAM used by the kernel
 
 // qemu puts UART registers here in physical memory.
+// "xxx_IRQ"即xxx的中断编号, 这里是uart的中断编号
 #define UART0 0x10000000L
 #define UART0_IRQ 10
 

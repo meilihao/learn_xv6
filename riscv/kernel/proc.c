@@ -51,7 +51,10 @@ proc_mapstacks(pagetable_t kpgtbl)
     char *pa = kalloc();
     if(pa == 0)
       panic("kalloc");
-    uint64 va = KSTACK((int) (p - proc)); // p - proc 计算出当前进程 p 在 proc 数组中的索引
+    
+    // p - proc 计算出当前进程 p 在 proc 数组中的索引
+    // 在 C 语言中，当对两个相同类型的指针进行相减运算时，结果并不是简单的字节地址之差，而是它们之间相隔的元素数量
+    uint64 va = KSTACK((int) (p - proc));
     kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
   }
 }
@@ -67,7 +70,7 @@ procinit(void)
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->state = UNUSED;
-      p->kstack = KSTACK((int) (p - proc));
+      p->kstack = KSTACK((int) (p - proc)); // 为每个进程分配内核栈
   }
 }
 

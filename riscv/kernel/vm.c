@@ -110,6 +110,9 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 
   for(int level = 2; level > 0; level--) { // 处理level 2,1
     // 页表项pte=物理页号 (Physical Page Number, PPN, 44位) + 标志位 (Flags, 10位)
+    //
+    // 在C语言中，指针和数组在访问元素时可以使用相同的语法。pagetable_t 是一个指向 uint64 的指针，而指针可以像数组一样使用下标 [] 来操作.
+    // `pagetable[PX(level, va)]`=`*(pagetable + PX(level, va))`表示从 pagetable 指针的地址开始，向前移动 PX(level, va) 个元素（而不是字节）。因为 pagetable 是一个 uint64 指针，所以每移动一步，地址就会增加 sizeof(uint64) 个字节
     pte_t *pte = &pagetable[PX(level, va)];
     if(*pte & PTE_V) { // 如果存在pte并且有效，合法，从PTE中取出下一级页表物理地址并替换pagetable
       pagetable = (pagetable_t)PTE2PA(*pte);

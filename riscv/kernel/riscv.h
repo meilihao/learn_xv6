@@ -345,7 +345,8 @@ sfence_vma()
 }
 
 typedef uint64 pte_t;
-typedef uint64 *pagetable_t; // 512 PTEs = PGSIZE/8. 它指向一个pte数组, 根据c语言的语法, 数组成员大小是uint64
+// pagetable_t是指向一个pte数组, 根据c语言的语法, 数组成员大小是uint64
+typedef uint64 *pagetable_t; // 512 PTEs = PGSIZE/8
 
 #endif // __ASSEMBLER__
 

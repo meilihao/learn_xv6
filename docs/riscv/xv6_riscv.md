@@ -11,7 +11,6 @@ ref:
 - [XV6 启动过程](https://mit-public-courses-cn-translatio.gitbook.io/mit6-s081/lec03-os-organization-and-system-calls/3.9-xv6-qi-dong-guo-cheng)
 - [XV6：操作系统组成](https://zhuanlan.zhihu.com/p/624607389)
 - [**MIT 6.S081**](https://blog.csdn.net/zzy980511/category_11740137.html)
-- [XV6实验(2020)](https://blog.csdn.net/weixin_47037146/article/details/128859088)
 
 ## labs
 ref:
@@ -24,6 +23,8 @@ ref:
 	- [**实验和手册**](http://xv6.dgs.zone/)
 
 		`book-riscv-rev<X>.pdf`的翻译
+- [Xv6 Labs 实验记录](https://ttzytt.com/categories/%E5%AE%9E%E9%AA%8C%E8%AE%B0%E5%BD%95/)
+- [XV6实验(2020)](https://blog.csdn.net/weixin_47037146/article/details/128859088)
 - [TJOS-xv6-labs-2024](https://github.com/xing05188/TJOS-xv6-labs-2024)
 
 [`git clone git://g.csail.mit.edu/xv6-labs-2025`](https://pdos.csail.mit.edu/6.S081/2025/labs/util.html), 较2024有较多变化.
