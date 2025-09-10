@@ -24,7 +24,7 @@ bootmain(void)
   void (*entry)(void);
   uchar* pa;
 
-  elf = (struct elfhdr*)0x10000;  // scratch space, 64k
+  elf = (struct elfhdr*)0x10000;  // scratch space, 64k // 在可用内存0x10000处开始暂存下面读到的内核elf文件的ELF 头
 
   // Read 1st page off disk
   // ELF 头不会超过4k
@@ -39,11 +39,11 @@ bootmain(void)
   // 拷贝段到物理地址 phoff
   ph = (struct proghdr*)((uchar*)elf + elf->phoff); // pht起始地址
   eph = ph + elf->phnum; // pht结束地址
-  for(; ph < eph; ph++){
-    pa = (uchar*)ph->paddr;
+  for(; ph < eph; ph++){ // 读取每个程序段
+    pa = (uchar*)ph->paddr; // 程序段内存放置的起点, 参考kernel.ld是从1MB开始的
     readseg(pa, ph->filesz, ph->off);
     if(ph->memsz > ph->filesz)
-      stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
+      stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz); // 用0填充即.bss初始化为0
   }
 
   // Call the entry point from the ELF header.
@@ -56,7 +56,7 @@ void
 waitdisk(void)
 {
   // Wait for disk ready.
-  // inb 表示读取硬件的端口，0x1F7 读操作时作为状态寄存器，这是一个8位寄存器，第7个bit表示的是 DRDY 位，表示磁盘就行，检测正常可以执行命令。第8个bit表示的是 BSY 位，表示磁盘是否繁忙
+  // inb 表示读取硬件的端口，0x1F7 读操作时作为状态寄存器，这是一个8位寄存器，第7个bit表示的是 DRDY 位，表示磁盘就绪，检测正常可以执行命令。第8个bit表示的是 BSY 位，表示磁盘是否繁忙
   // 0xC0=1100 0000
   // 0x40=0100 0000
   while((inb(0x1F7) & 0xC0) != 0x40)
@@ -73,7 +73,7 @@ readsect(void *dst, uint offset)
   // use LBA28
   // 0x1F6 的高四位表示LAB模式，0xE0 = 0x1110000. 高四位中除了最后一个bit全部为1，最后一个bit为0表示是主盘（因为主盘是 xv6.img，从盘是 fs.img）
   waitdisk();
-  outb(0x1F2, 1);   // count = 1
+  outb(0x1F2, 1);   // 要读取的扇区数量, count = 1
   outb(0x1F3, offset);
   outb(0x1F4, offset >> 8);
   outb(0x1F5, offset >> 16);
@@ -82,7 +82,7 @@ readsect(void *dst, uint offset)
 
   // Read data.
   waitdisk();
-  insl(0x1F0, dst, SECTSIZE/4);
+  insl(0x1F0, dst, SECTSIZE/4); // 0x1F0: 数据端口，硬盘通过这个端口传输数据. 循环读取 512/4 = 128 次
 }
 
 // Read 'count' bytes at 'offset' from kernel into physical address 'pa'.

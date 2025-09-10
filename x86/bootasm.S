@@ -63,6 +63,7 @@ seta20.2:
 .code32  # Tell assembler to generate 32-bit code now.
 start32:
   # Set up the protected-mode data segment registers
+  # 在xv6中，由于采用了平坦内存模型，ds, es 和 ss 寄存器都被设置为指向同一个 4GB 的内存段。这使得虚拟地址和物理地址保持1:1的映射，极大地简化了编程
   movw    $(SEG_KDATA<<3), %ax    # Our data segment selector
   movw    %ax, %ds                # -> DS: Data Segment
   movw    %ax, %es                # -> ES: Extra Segment
@@ -72,7 +73,7 @@ start32:
   movw    %ax, %gs                # -> GS
 
   # Set up the stack pointer and call into C.
-  movl    $start, %esp # esp = 0x7C00
+  movl    $start, %esp # esp = 0x7C00 # 根据[Memory Map (x86)](https://wiki.osdev.org/Memory_Map_(x86)), 0x7c00前面有部分(0x500~0x7BFF)可用内存
   call    bootmain
 
   # If bootmain returns (it shouldn't), trigger a Bochs
