@@ -58,6 +58,7 @@ static struct disk {
   
 } disk;
 
+// virtio标准规定的一般虚拟设备启动流程(见标准3.1.1位置)
 void
 virtio_disk_init(void)
 {
@@ -73,17 +74,21 @@ virtio_disk_init(void)
   }
   
   // reset device
+  // 重置设备，设置状态寄存器为0即可
   *R(VIRTIO_MMIO_STATUS) = status;
 
   // set ACKNOWLEDGE status bit
+  // 设置状态寄存器Acknowladge状态位，OS识别到设备
   status |= VIRTIO_CONFIG_S_ACKNOWLEDGE;
   *R(VIRTIO_MMIO_STATUS) = status;
 
   // set DRIVER status bit
+  // 设置状态寄存器Driver状态位，OS知道如何驱动设备
   status |= VIRTIO_CONFIG_S_DRIVER;
   *R(VIRTIO_MMIO_STATUS) = status;
 
   // negotiate features
+  // 协商feature，每个feature均有说明
   uint64 features = *R(VIRTIO_MMIO_DEVICE_FEATURES);
   features &= ~(1 << VIRTIO_BLK_F_RO);
   features &= ~(1 << VIRTIO_BLK_F_SCSI);
@@ -95,13 +100,17 @@ virtio_disk_init(void)
   *R(VIRTIO_MMIO_DRIVER_FEATURES) = features;
 
   // tell device that feature negotiation is complete.
+  // 设置Features_OK状态位表示协商完成
   status |= VIRTIO_CONFIG_S_FEATURES_OK;
   *R(VIRTIO_MMIO_STATUS) = status;
 
   // re-read status to ensure FEATURES_OK is set.
+  // 读取设备状态，确保已经设置Features_OK状态位
   status = *R(VIRTIO_MMIO_STATUS);
   if(!(status & VIRTIO_CONFIG_S_FEATURES_OK))
     panic("virtio disk FEATURES_OK unset");
+
+  // 开始执行特定设备的设置，包括虚拟队列等 
 
   // initialize queue 0.
   *R(VIRTIO_MMIO_QUEUE_SEL) = 0;
@@ -111,6 +120,7 @@ virtio_disk_init(void)
     panic("virtio disk should not be ready");
 
   // check maximum queue size.
+  // 检查队列最大容量
   uint32 max = *R(VIRTIO_MMIO_QUEUE_NUM_MAX);
   if(max == 0)
     panic("virtio disk has no queue 0");
@@ -128,6 +138,7 @@ virtio_disk_init(void)
   memset(disk.used, 0, PGSIZE);
 
   // set queue size.
+  // 设置驱动所用队列大小
   *R(VIRTIO_MMIO_QUEUE_NUM) = NUM;
 
   // write physical addresses.
@@ -142,10 +153,12 @@ virtio_disk_init(void)
   *R(VIRTIO_MMIO_QUEUE_READY) = 0x1;
 
   // all NUM descriptors start out unused.
+  // 记录descriptor的可用情况，为1，可用，0不可用
   for(int i = 0; i < NUM; i++)
     disk.free[i] = 1;
 
   // tell device we're completely ready.
+  // 设置DRIVER_OK 状态位，此时设备已就位
   status |= VIRTIO_CONFIG_S_DRIVER_OK;
   *R(VIRTIO_MMIO_STATUS) = status;
 
@@ -212,6 +225,7 @@ alloc3_desc(int *idx)
   return 0;
 }
 
+// https://blog.csdn.net/qq_45226456/article/details/133583975
 void
 virtio_disk_rw(struct buf *b, int write)
 {
@@ -291,6 +305,7 @@ virtio_disk_rw(struct buf *b, int write)
   release(&disk.vdisk_lock);
 }
 
+// https://blog.csdn.net/qq_45226456/article/details/133583975
 void
 virtio_disk_intr()
 {

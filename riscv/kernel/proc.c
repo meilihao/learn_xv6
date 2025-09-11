@@ -122,6 +122,7 @@ allocpid()
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
 // If there are no free procs, or a memory allocation fails, return 0.
+// 分配进程资源
 static struct proc*
 allocproc(void)
 {
@@ -142,6 +143,7 @@ found:
   p->state = USED;
 
   // Allocate a trapframe page.
+  // trapframe 用于用户态和内核态之间上下文的安全切换
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
     release(&p->lock);
@@ -203,6 +205,8 @@ proc_pagetable(struct proc *p)
   // at the highest user virtual address.
   // only the supervisor uses it, on the way
   // to/from user space, so not PTE_U.
+  //将跳板代码(用于系统调用返回)映射到最高的用户地址
+  //只有内核使用该代码进出用户空间，所以不用设置PTE_U
   if(mappages(pagetable, TRAMPOLINE, PGSIZE,
               (uint64)trampoline, PTE_R | PTE_X) < 0){
     uvmfree(pagetable, 0);
@@ -211,9 +215,15 @@ proc_pagetable(struct proc *p)
 
   // map the trapframe page just below the trampoline page, for
   // trampoline.S.
+  // 将陷阱帧页映射到跳板页的下方，用于 trampoline.S
+  // 当 uvmunmap() 最后一个参数是 0 时，uvmfree(pagetable, 0) 确实能够间接地通过 freewalk() 递归清理页表结构，涵盖了uvmunmap(..., 0)的效果
+  // 但这两种写法的意图不同：
+  // 1. uvmunmap(..., 0) 是一个精确的、点对点的取消映射操作。
+  // 2. uvmfree(...) 则是一个更全面的页表清理函数，它在 uvmunmap 的基础上，还调用了 freewalk 来释放页表结构本身
+  // 在 proc_pagetable() 的错误处理中，先调用 uvmunmap 是为了显式地断开对 TRAMPOLINE 的链接，这是一种清晰的编程风格
   if(mappages(pagetable, TRAPFRAME, PGSIZE,
               (uint64)(p->trapframe), PTE_R | PTE_W) < 0){
-    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+    uvmunmap(pagetable, TRAMPOLINE, 1, 0); // do_free=0, 因为跳板页（trampoline）是内核共享的，不能被 uvmunmap 释放
     uvmfree(pagetable, 0);
     return 0;
   }

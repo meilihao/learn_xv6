@@ -102,6 +102,8 @@ kvminithart()
 // pagetable: 根页表
 // 在TLB中已经有了walk这一功能，分页、创建页表项、三级页表的维护实际上都是应该由硬件完成的.
 // 而这里还要有walk的原因是，首先它要创建最初的三级页表，其次就是有时内核执行用户态内核态拷贝时会使用用户页表进行读取数据，并拷贝到内核中，此时可能需要手动模拟walk
+// level 2 ~ 1 的PPN是下一级页表的物理地址
+// level 0(叶子pte)的PPN是page的物理地址
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
@@ -205,6 +207,10 @@ uvmcreate()
 // Remove npages of mappings starting from va. va must be
 // page-aligned. It's OK if the mappings don't exist.
 // Optionally free the physical memory.
+// 解除页表映射(leaf)并释放物理内存
+// va: 要解除映射的区域的起始虚拟地址
+// npages:  要解除映射的页数
+// do_free: 1, 不仅要解除映射，还要释放被映射的物理页面; 0, 只解除虚拟地址的映射
 void
 uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 {
@@ -214,6 +220,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
   if((va % PGSIZE) != 0)
     panic("uvmunmap: not aligned");
 
+  // 循环遍历指定虚拟地址范围内的每个页面
   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
     if((pte = walk(pagetable, a, 0)) == 0) // leaf page table entry allocated?
       continue;   
@@ -275,18 +282,24 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
 // Recursively free page-table pages.
 // All leaf mappings must already have been removed.
+// 释放页表本身
 void
 freewalk(pagetable_t pagetable)
 {
   // there are 2^9 = 512 PTEs in a page table.
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
-    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
+
+    // 根据 RISC-V 规范，只有指向下一级页表的 PTE 才会不设置这些权限位，而指向最终物理页的 PTE（叶子 PTE）必须设置权限位
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){ // 用于区分指向下一级页表的 PTE 和指向最终物理页的 PTE
       // this PTE points to a lower-level page table.
       uint64 child = PTE2PA(pte);
       freewalk((pagetable_t)child);
       pagetable[i] = 0;
     } else if(pte & PTE_V){
+      // 如果 if 条件不成立，但 PTE_V 仍然有效，说明这是一个叶子页表项，它指向一个用户数据页
+      // freewalk 函数的设计目标是只释放页表结构，用户数据页的释放应该在 uvmunmap() 中完成，以防止重复释放或释放错误。
+      // 这个 panic 机制确保了 freewalk 永远不会在叶子节点处被调用，从而保证了内存管理的正确性
       panic("freewalk: leaf");
     }
   }
@@ -295,6 +308,7 @@ freewalk(pagetable_t pagetable)
 
 // Free user memory pages,
 // then free page-table pages.
+// sz: 用户进程的虚拟地址空间大小
 void
 uvmfree(pagetable_t pagetable, uint64 sz)
 {

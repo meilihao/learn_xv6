@@ -60,6 +60,8 @@ end~PHYSTOP=free ram space
 
   SvX 表示存储系统中使用 X 位的虚拟地址，不同位数的虚拟地址对应的物理地址的位宽也会有所不同（Sv32 的 PA 位宽为 34，其它均为 56 位），除去 VA 和 PA 中的 12 位 Page Offset，每个页表项（PTE）实际存储的是物理页号（PPN）。对应页表项中 PPN 的位宽为 22（Sv32）或 44（Sv39，Sv48，Sv57）
 
+  len(va) = 9 * N(3,4,5) + 12(page offset)
+
 [riscv特权文档 - The RISC-V Instruction Set Manual Volume II: Privileged Architecture](https://riscv.atlassian.net/wiki/spaces/HOME/pages/16154769/RISC-V+Technical+Specifications) 12.x章节中定义了Sv32、Sv39、Sv48和Sv57 这几种虚拟地址, sv后面的数字表示支持多少位的虚拟地址. 其中Sv32是用于32位系统的，Sv39、Sv48和Sv57则是用于64位系统. Sv39、Sv48、Sv57分别也就对应三级页表，四级页表和五级页表.
 
 xv6-riscv采用的即为sv39的方式:
