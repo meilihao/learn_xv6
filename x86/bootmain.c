@@ -49,7 +49,7 @@ bootmain(void)
   // Call the entry point from the ELF header.
   // Does not return!
   entry = (void(*)(void))(elf->entry);
-  entry();
+  entry(); // 见kernel.ld的`ENTRY(_start)`=`entry.S`的_start. elf.entry=0x10000c, 不是0x100000因为有multiboot_header
 }
 
 void

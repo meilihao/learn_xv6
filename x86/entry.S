@@ -39,14 +39,14 @@ multiboot_header:
 # Since we haven't set up virtual memory yet, our entry point is
 # the physical address of 'entry'.
 .globl _start
-_start = V2P_WO(entry) // 还未开启分页, entry是VirtualAddr
+_start = V2P_WO(entry) // 还未开启分页, entry是VirtualAddr, 见`readelf -a kernel`的符号表. 因此kernel实际从entry开始运行
 
 # Entering xv6 on boot processor, with paging off.
 .globl entry
 entry:
   # Turn on page size extension for 4Mbyte pages
   movl    %cr4, %eax
-  orl     $(CR4_PSE), %eax # PSE位为0表示每页是4KB,为1表示每页是4MB
+  orl     $(CR4_PSE), %eax # PSE位为0表示每页是4KB,为1表示每页是4MB, 这里是开启4MB页面
   movl    %eax, %cr4
   # Set page directory
   movl    $(V2P_WO(entrypgdir)), %eax # entrypgdir 在 main.c
@@ -57,6 +57,8 @@ entry:
   movl    %eax, %cr0
 
   # Set up the stack pointer.
+  # KSTACKSIZE in param.h
+  # stack in 下面
   movl $(stack + KSTACKSIZE), %esp
 
   # Jump to main(), and switch to executing at

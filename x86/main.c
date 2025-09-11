@@ -119,11 +119,11 @@ startothers(void)
 // 所以kernel img部分一般用一个4M页进行映射，而其他则使用4K页。
 // 对于xv6来说，使用4M页只是临时，不用创建复杂的页表，内核启动之后很快就会重新创建4k页表
 __attribute__((__aligned__(PGSIZE)))
-pde_t entrypgdir[NPDENTRIES] = {
+pde_t entrypgdir[NPDENTRIES] = { // NPDENTRIES: 页目录中的条目数量，对于 32 位系统，通常是 4096/4=1024
   // Map VA's [0, 4MB) to PA's [0, 4MB)
-  [0] = (0) | PTE_P | PTE_W | PTE_PS, // 0x083
+  [0] = (0) | PTE_P | PTE_W | PTE_PS, // 0x083 // [0] = entrypgdir 数组的第0个条目. [0] = (0) 是 C 语言中初始化指定数组元素的语法，它在内核开发中非常常见
   // Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
-  [KERNBASE>>PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
+  [KERNBASE>>PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS, // 这行代码设置的是 entrypgdir 数组的第512个条目, 设置可正确开始执行main()
 };
 
 //PAGEBREAK!
