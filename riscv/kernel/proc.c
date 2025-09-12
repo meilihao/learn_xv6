@@ -450,7 +450,7 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
 
-  c->proc = 0;
+  c->proc = 0; // 表示当前核心没有正在运行的进程，处于空闲状态
   for(;;){
     // The most recent process to run may have had interrupts
     // turned off; enable them to avoid a deadlock if all
@@ -463,7 +463,7 @@ scheduler(void)
     int found = 0;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+      if(p->state == RUNNABLE) { // 如果进程处于 RUNNABLE 状态，表示它可以被调度器运行
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
@@ -480,6 +480,7 @@ scheduler(void)
     }
     if(found == 0) {
       // nothing to run; stop running on this core until an interrupt.
+      // 执行 wfi (Wait For Interrupt) 汇编指令，让 CPU 进入低功耗睡眠状态，直到一个中断发生. 这可以节省能源并避免不必要的忙等
       asm volatile("wfi");
     }
   }
