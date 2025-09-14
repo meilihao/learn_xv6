@@ -29,6 +29,7 @@ acquire(struct spinlock *lk)
   //   a5 = 1
   //   s1 = &lk->locked
   //   amoswap.w.aq a5, a5, (s1)
+  // __sync_lock_test_and_set()：这是一个 GCC 内建原子操作函数
   while(__sync_lock_test_and_set(&lk->locked, 1) != 0)
     ;
 
@@ -36,6 +37,8 @@ acquire(struct spinlock *lk)
   // past this point, to ensure that the critical section's memory
   // references happen strictly after the lock is acquired.
   // On RISC-V, this emits a fence instruction.
+  // 这是一个内存屏障。它告诉编译器和处理器，不要将获取锁之后的内存读写操作移动到获取锁之前。
+  // 这确保了在进入临界区后，所有对共享数据的访问都发生在锁被成功获取之后
   __sync_synchronize();
 
   // Record info about lock acquisition for holding() and debugging.
@@ -73,6 +76,7 @@ release(struct spinlock *lk)
 
 // Check whether this cpu is holding the lock.
 // Interrupts must be off.
+// 是否持有锁
 int
 holding(struct spinlock *lk)
 {
@@ -85,6 +89,8 @@ holding(struct spinlock *lk)
 // it takes two pop_off()s to undo two push_off()s.  Also, if interrupts
 // are initially off, then push_off, pop_off leaves them off.
 
+// 在单核或多核环境中，如果一个线程在持有自旋锁时被中断，并且中断处理程序又试图获取同一个锁，就会导致死锁。关闭中断可以防止这种情况的发生
+// 禁用中断，并增加一个计数器。这样做是为了确保在向 UART 硬件寄存器写入数据时，不会被中断打断，从而保证操作的原子性
 void
 push_off(void)
 {

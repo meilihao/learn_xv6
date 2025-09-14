@@ -514,6 +514,7 @@ sched(void)
 }
 
 // Give up the CPU for one scheduling round.
+// yield() 函数会自愿放弃 CPU，将当前进程的状态设置为 RUNNABLE，并调用 scheduler()，让其他进程有机会运行
 void
 yield(void)
 {

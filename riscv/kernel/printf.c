@@ -26,6 +26,7 @@ static struct {
 static char digits[] = "0123456789abcdef";
 
 // 负责将整数转换为字符串并输出
+// 该函数通过取余和除法的方法，将一个数字的每一位转换为对应的字符，并存储在一个临时缓冲区中，最后再以正确的顺序输出
 static void
 printint(long long xx, int base, int sign)
 {

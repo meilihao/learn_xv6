@@ -3,6 +3,7 @@
 ## 规范
 ref:
 - [ISRC-CAS/riscv-isa-manual-cn](https://github.com/ISRC-CAS/riscv-isa-manual-cn)
+- [RISC-V Assembler Cheat Sheet](https://projectf.io/posts/riscv-cheat-sheet/)
 
 ## 模式
 RISC-V总共有三种模式：
@@ -19,10 +20,17 @@ RISC-V总共有三种模式：
 RV32 和RV64 的区别在于指令集所支持的位数不同，RV32 是32 位指令集，而RV64 是64 位指令集。它们都属于 RISC-V 指令集架构，基础指令集分别为 RV32I 和 RV64I. xv6属于RV64.
 
 ## 寄存器
+ref:
+- [RISC-V ASM (assembly language) programmer manual](https://shakti.org.in/docs/risc-v-asm-manual.pdf)
+
 每个寄存器也由一个16进制的别名, 比如`0x30a=menvcfg`
+
+### 普通寄存器
+caller/callee 见[The RISC-V Instruction Set Manual-Volume I](/docs/riscv/misc/file/The RISC-V Instruction Set Manual-Volume I.pdf)的`Chapter 20 Calling Convention`
 
 - ra: Return Address. 当一个函数被调用时，RA寄存器会被自动保存下来，以便在函数执行完毕后能够返回调用该函数的位置. 因此，在函数执行过程中，RA寄存器也可以被用来存储函数的返回地址(返回后继续执行的指令的地址)。它也时常被用来函数传参
 
+### CSR寄存器
 - mcounteren: 用于控制在 M-mode 下，哪些计数器可以被 S-mode 访问
 
     - 2：代表 time（机器模式时间）计数器
@@ -67,9 +75,19 @@ RV32 和RV64 的区别在于指令集所支持的位数不同，RV32 是32 位�
     - MIE (Machine Interrupt Enable): 允许或禁止中断。当为1时，中断被启用。
     - MIE (Machine Interrupt Enable): 记录中断是否被启用
 - mcauese/scause : Machine/Supervisor Exception Cause, 机器/监管者异常原因寄存器. 记录发生异常或中断的原因, 比如缺页异常, 非法指令或外部中断
+
+    1. 5: supervisor timer interrupt
+    2. 9: supervisor external interrupt(外部设备中断)
 - mscratch/sscratch: Machine/Supervisor Scratch, 机器/监管者临时寄存器
 
     在陷阱处理的早期阶段, 这是一个非常有用的临时寄存器. 通常内核会把指向当前进程/cpu的内核栈顶的指针放在sscratch中, 这样陷阱处理程序一进来就可以立即切换到内核栈, 而不用破坏任何用户寄存器
+- mtime
+
+    以固定的频率递增，用于跟踪时间
+- mtimecmp
+
+    RISC-V 架构中的时钟中断是通过比较 mtime 和 mtimecmp 两个寄存器的值来触发的。只有当 mtime 的值大于或等于 mtimecmp 时，时钟中断才会产生
+
 - mtvec/stvec : Machine/Supervisor trap vector base address, 机器/监管者陷阱向量基地址寄存器, 指向陷阱程序的入口地址. 当异常发生时, cpu会跳转到这个地址
 - mtval/stval : Machine/Supervisor trap value, 机器/监管者陷阱值寄存器，提供与异常相关的附加信息. 例如, 在缺页异常时, 它会保存导致异常的虚拟地址; 在非法指令异常时, 它会保存导致异常的指令
 - PMP 控制寄存器/PMP 地址寄存器: pmpaddrN/pmpcfgN
@@ -194,3 +212,28 @@ volatile: 这是一个修饰符，告诉编译器不要优化这段汇编代码�
 
 ## ABI
 RISC-V ABI规定寄存器和堆栈用于函数参数传递，并且参数从左到右的顺序是从寄存器到堆栈：前几个参数按顺序存储在通用寄存器（a0到a7）中，如果参数过多，剩余参数将依次存储在堆栈中
+
+## 中断和异常
+exception(同步):
+1. cpu内部产生, 比如除0异常, 缺页异常
+2. xret返回到当前异常指令处
+
+interrupt(异步):
+1. machine external interrupt: 通过PLIC管理
+
+中断和异常的总体处理逻辑:
+1. 当中断发生时, 保存当前pc到mepc/sepc, 同时mstatus中的mie位置为0, 表示不再响应其他中断
+1. mcause/scause决定是否为外设中断
+1. 当是外设中断, 流程跳转到mtvec/stvec指向的中断处理入口
+1. 中断处理函数, 读取PLIC中的相关寄存器
+1. 读取sclaim寄存器, 获取具体是哪种外设中断
+1. 处理中断
+1. 设置complete寄存器, 写入读取时的同样的值, 表示当前中断已处理完毕
+1. 执行mret, xv6是sret, 从mepc/sepc中获取返回地址, 继续执行. 同时将mstatus中的mie置为1, 继续响应中断
+
+### qemu 中断参数
+见`<qemu_source>/include/hw/riscv/virt.h`
+
+有支持设备的中断号
+
+qemu支持7个优先级, 0表示禁用中断, 1~7逐级增高. 如果2个中断源的优先级相同, 根据中断的id进一步区分优先级, id越小优先级越高

@@ -56,7 +56,7 @@ struct virtq_desc {
   uint16 flags;
   uint16 next;
 };
-#define VRING_DESC_F_NEXT  1 // chained with another descriptor
+#define VRING_DESC_F_NEXT  1 // chained with another descriptor // 存在下一个描述符
 #define VRING_DESC_F_WRITE 2 // device writes (vs read)
 
 // the (entire) avail ring, from the spec.

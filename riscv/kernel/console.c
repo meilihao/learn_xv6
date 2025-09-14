@@ -34,7 +34,9 @@ void
 consputc(int c)
 {
   if(c == BACKSPACE){
+    // 为了实现退格功能，函数会发送三个连续的字符到串口
     // if the user typed backspace, overwrite with a space.
+    // '\b': 光标后移一格. 输出空格后光标会后移, 因此需要'\b'再次后退一格
     uartputc_sync('\b'); uartputc_sync(' '); uartputc_sync('\b');
   } else {
     uartputc_sync(c);

@@ -31,20 +31,24 @@ static struct disk {
   // that the driver would like the device to process.  it only
   // includes the head descriptor of each chain. the ring has
   // NUM elements.
+  // kernel通知disk
   struct virtq_avail *avail;
 
   // a ring in which the device writes descriptor numbers that
   // the device has finished processing (just the head of each chain).
   // there are NUM used ring entries.
+  // disk通知kernel
   struct virtq_used *used;
 
   // our own book-keeping.
-  char free[NUM];  // is a descriptor free?
+  char free[NUM];  // is a descriptor free? 0=using
   uint16 used_idx; // we've looked this far in used[2..NUM].
 
   // track info about in-flight operations,
   // for use when completion interrupt arrives.
   // indexed by first descriptor index of chain.
+  // 8个描述符, 跟踪每个描述符状态信息
+  // 表示读写块成功的结构
   struct {
     struct buf *b;
     char status;
@@ -166,6 +170,7 @@ virtio_disk_init(void)
 }
 
 // find a free descriptor, mark it non-free, return its index.
+// 分配一个空的描述符
 static int
 alloc_desc()
 {
@@ -211,6 +216,11 @@ free_chain(int i)
 
 // allocate three descriptors (they need not be contiguous).
 // disk transfers always use three descriptors.
+// 用于从描述符表中分配三个连续的描述符
+// VirtIO 规范规定，一个块 I/O 请求需要三个描述符：
+// 1. 请求头描述符：用于描述 I/O 操作类型（读/写）和扇区号
+// 1. 数据描述符：指向要读写的数据缓冲区
+// 1. 状态描述符：用于存储设备操作的最终状态
 static int
 alloc3_desc(int *idx)
 {
@@ -261,7 +271,7 @@ virtio_disk_rw(struct buf *b, int write)
   disk.desc[idx[0]].addr = (uint64) buf0;
   disk.desc[idx[0]].len = sizeof(struct virtio_blk_req);
   disk.desc[idx[0]].flags = VRING_DESC_F_NEXT;
-  disk.desc[idx[0]].next = idx[1];
+  disk.desc[idx[0]].next = idx[1]; // 下一个描述符
 
   disk.desc[idx[1]].addr = (uint64) b->data;
   disk.desc[idx[1]].len = BSIZE;
@@ -283,15 +293,17 @@ virtio_disk_rw(struct buf *b, int write)
   disk.info[idx[0]].b = b;
 
   // tell the device the first index in our chain of descriptors.
+  // 将描述符链的第一个索引（idx[0]）放入**可用环（Available Ring）**中。可用环是 VirtIO 规范中定义的，用于向设备通知新的请求
   disk.avail->ring[disk.avail->idx % NUM] = idx[0];
 
   __sync_synchronize();
 
   // tell the device another avail ring entry is available.
-  disk.avail->idx += 1; // not % NUM ...
+  disk.avail->idx += 1; // not % NUM ... // 表示又添加了一个新的可用描述符
 
   __sync_synchronize();
 
+  // 通过写入 VirtIO MMIO 寄存器，通知设备有一个新的请求可以处理
   *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
 
   // Wait for virtio_disk_intr() to say request has finished.

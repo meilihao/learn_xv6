@@ -44,7 +44,7 @@ usertrap(void)
 
   // send interrupts and exceptions to kerneltrap(),
   // since we're now in the kernel.
-  w_stvec((uint64)kernelvec);
+  w_stvec((uint64)kernelvec);  //DOC: kernelvec
 
   struct proc *p = myproc();
   
@@ -136,15 +136,17 @@ void
 kerneltrap()
 {
   int which_dev = 0;
-  uint64 sepc = r_sepc();
-  uint64 sstatus = r_sstatus();
-  uint64 scause = r_scause();
+  uint64 sepc = r_sepc(); // sepc 寄存器保存了陷阱发生时，CPU 将要执行的下一条指令的地址
+  uint64 sstatus = r_sstatus(); // sstatus保存了处理器的状态信息，比如先前的特权级
+  uint64 scause = r_scause(); // scause保存了触发陷阱的原因代码，例如是时钟中断、外部中断还是系统调用等
   
-  if((sstatus & SSTATUS_SPP) == 0)
+  if((sstatus & SSTATUS_SPP) == 0) // 如果 SPP 位为 0，则表示陷阱是从用户模式（U-mode）触发的，而不是内核模式
     panic("kerneltrap: not from supervisor mode");
-  if(intr_get() != 0)
+  if(intr_get() != 0) // 检查当前是否启用了中断。在处理陷阱时，中断应该被禁用，以防止嵌套中断
     panic("kerneltrap: interrupts enabled");
 
+  // devintr() 是一个辅助函数，它会检查并处理外部设备中断，例如 UART 或 VirtIO 中断.
+  // devintr() 返回 0，说明陷阱来自一个未知源（既不是设备中断，也不是已知的异常），这被视为一个严重错误
   if((which_dev = devintr()) == 0){
     // interrupt or trap from an unknown source
     printf("scause=0x%lx sepc=0x%lx stval=0x%lx\n", scause, r_sepc(), r_stval());
@@ -157,6 +159,8 @@ kerneltrap()
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
+  // 这一步非常重要。如果 yield() 被调用，它可能会导致上下文切换，从而改变 sepc 和 sstatus。
+  // 在 kerneltrap() 返回后，kernelvec.S 需要正确的 sepc 和 sstatus 值来确保程序能够从中断发生的地方正确恢复
   w_sepc(sepc);
   w_sstatus(sstatus);
 }
@@ -182,6 +186,7 @@ clockintr()
 // returns 2 if timer interrupt,
 // 1 if other device,
 // 0 if not recognized.
+// 获取中断, 异常的原因
 int
 devintr()
 {

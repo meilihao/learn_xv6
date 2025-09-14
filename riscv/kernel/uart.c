@@ -116,12 +116,15 @@ uartputc_sync(int c)
   if(panicking == 0)
     push_off();
 
+  // 如果内核已经处于恐慌状态，函数会进入一个无限循环。这是为了在系统崩溃时，防止程序继续执行，从而保证调试信息能够被正确输出
   if(panicked){
     for(;;)
       ;
   }
 
   // wait for Transmit Holding Empty to be set in LSR.
+  // 实现同步的关键
+  // 直到 LSR_TX_IDLE 位被设置为 1，这意味着 UART 已经处理完上一个字符，可以接收下一个字符了
   while((ReadReg(LSR) & LSR_TX_IDLE) == 0)
     ;
   WriteReg(THR, c);

@@ -14,6 +14,7 @@ void freerange(void *pa_start, void *pa_end);
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
 
+// 这个结构体的唯一作用就是将空闲的物理内存页串联成一个链表 
 struct run {
   struct run *next;
 };

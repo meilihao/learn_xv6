@@ -59,11 +59,11 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
-CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
-CFLAGS += -MD
-CFLAGS += -mcmodel=medany
-CFLAGS += -ffreestanding
-CFLAGS += -fno-common -nostdlib
+CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2 # -fno-omit-frame-pointer: 生成栈帧的相关信息
+CFLAGS += -MD # -MD 生成.d, 它包含依赖文件
+CFLAGS += -mcmodel=medany # 针对riscv arch的代码模型
+CFLAGS += -ffreestanding # 生成独立运行的代码即代码不依赖于标准库或os提供的额外支持, 通常用于裸机嵌入式系统或os kernel的开发
+CFLAGS += -fno-common -nostdlib # -fno-common: 禁止编译器将为初始化的全局变量和函数定义放在common段中, 避免因为全局变量在多个源文件中重复定义而导致链接错误. -nostdlib: 不使用标准C lib
 CFLAGS += -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset
 CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero
 CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc

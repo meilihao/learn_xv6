@@ -113,13 +113,13 @@ static struct kmap {
   int perm;
 } kmap[] = {
  { (void*)KERNBASE, 0,             EXTMEM,    PTE_W}, // I/O space
- { (void*)KERNLINK, V2P(KERNLINK), V2P(data), 0},     // kern text+rodata
- { (void*)data,     V2P(data),     PHYSTOP,   PTE_W}, // kern data+memory
- { (void*)DEVSPACE, DEVSPACE,      0,         PTE_W}, // more devices
+ { (void*)KERNLINK, V2P(KERNLINK), V2P(data), 0},     // kern text+rodata, perm = 0 (通常表示只读)
+ { (void*)data,     V2P(data),     PHYSTOP,   PTE_W}, // kern data+memory, 这部分包含内核的可写数据（如.data 和 .bss）、堆（heap）以及所有可用的物理内存
+ { (void*)DEVSPACE, DEVSPACE,      0,         PTE_W}, // more devices, 这部分用于访问内存映射的设备（MMIO），例如 VGA 显存、网卡和串口. 4GB在32系统中回卷即为0, 见setupkvm()的注释
 };
 
 // Set up kernel part of a page table.
-// 通过 kamp 数组，将物理内存分为四个部分映射到虚拟内存中，这四个部分在物理地址是不一定连续的，在虚拟地址是连续的
+// 通过 kmap 数组，将物理内存分为四个部分映射到虚拟内存中，这四个部分在物理地址是不一定连续的，在虚拟地址是连续的
 // kmap 就是这四个段：0~1MB，1MB~data，data~PHYSTOP，DEVSPACE~4G.
 // 除了第二段是内核程序只能读不能写之外，其他都是可以读写的
 // DEVSPACE 该段有一个 0，表示对 2^32 取整后的 4G，进入程序模拟一下发现并不会出错（在 mappages 中，3G... + PGSIZE = 4G % 4G = 0，由于 a = 0，last = 0，退出)

@@ -17,7 +17,7 @@ extern char end[]; // first address after kernel loaded from ELF file. end是变
 int
 main(void)
 {
-  kinit1(end, P2V(4*1024*1024)); // phys page allocator [xv6 的内存管理](https://juejin.cn/post/6996936887562666015)
+  kinit1(end, P2V(4*1024*1024)); // phys page allocator, 初始化end ~ 4M的空间 [xv6 的内存管理](https://juejin.cn/post/6996936887562666015)
   kvmalloc();      // kernel page table
   mpinit();        // detect other processors
   lapicinit();     // interrupt controller
